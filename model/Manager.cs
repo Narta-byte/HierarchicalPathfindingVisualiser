@@ -16,6 +16,6 @@ public class Manager
     }
 
     public FinalPath Run()
-        => selectedAlgo.FindGoal(map);
+        => selectedAlgo.FindGoal(map.cells, map.start, map.goal);
 }
 

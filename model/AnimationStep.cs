@@ -1,4 +1,4 @@
 ﻿namespace HPF.model
 {
-    public record AnimationStep(Coord pos, bool isVisited, bool isPath);
+    public record AnimationStep(Vector2 pos, bool isVisited, bool isPath);
 }

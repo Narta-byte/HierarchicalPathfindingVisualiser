@@ -1,9 +1,9 @@
 ﻿
 namespace HPF.model
 {
-    public record Chunk(Coord Corner1, Coord Corner2, List<Gate> Gates);
+    public record Chunk(Vector2 Corner1, Vector2 Corner2, List<Gate> Gates);
     public enum Direction { Up, Down, Left, Right }
-    public record Gate(Coord Coord, List<Gate> Connections);
+    public record Gate(Vector2 Coord, List<Gate> Connections);
  
     public class GridMap : PMap
     {
@@ -39,8 +39,8 @@ namespace HPF.model
                     int c2 = Math.Min(c1 + gridSize, M);
 
                     chunks[cr, cc] = new Chunk(
-                        new Coord(Row: r1, Col: c1),
-                        new Coord(Row: r2, Col: c2),
+                        new Vector2(Row: r1, Col: c1),
+                        new Vector2(Row: r2, Col: c2),
                         new List<Gate>()
                     );
                 }
@@ -69,16 +69,16 @@ namespace HPF.model
         private void FindGates(Chunk curChunk, Chunk chunk, (int, int) dir) {
             switch (GetDirection(dir)) {
                 case Direction.Left: {
-                        (Celltype[] leftcells, Coord leftstart, Coord leftend) = GetLeftEdge(curChunk);
-                        (Celltype[] rightcells, Coord rightstart, Coord rightend) = GetRightEdge(chunk);
+                        (Celltype[] leftcells, Vector2 leftstart, Vector2 leftend) = GetLeftEdge(curChunk);
+                        (Celltype[] rightcells, Vector2 rightstart, Vector2 rightend) = GetRightEdge(chunk);
 
                         var minLen = Math.Min(leftcells.Length, rightcells.Length);
                         for (int i = 0; i < minLen; i++) {
                             if (leftcells[i] == Celltype.Wall || rightcells[i] == Celltype.Wall)
                                 continue;
 
-                            Gate curChunkGate = new(new Coord(leftstart.Row + i, leftstart.Col), Connections: []);
-                            Gate chunkGate = new(new Coord(rightstart.Row + i, rightstart.Col), Connections: []);
+                            Gate curChunkGate = new(new Vector2(leftstart.Row + i, leftstart.Col), Connections: []);
+                            Gate chunkGate = new(new Vector2(rightstart.Row + i, rightstart.Col), Connections: []);
 
                             curChunkGate.Connections.Add(chunkGate);
                             chunkGate.Connections.Add(curChunkGate);
@@ -92,16 +92,16 @@ namespace HPF.model
                     }
 
                 case Direction.Right: {
-                        (Celltype[] rightcells, Coord rightstart, Coord rightend) = GetRightEdge(curChunk);
-                        (Celltype[] leftcells, Coord leftstart, Coord leftend) = GetLeftEdge(chunk);
+                        (Celltype[] rightcells, Vector2 rightstart, Vector2 rightend) = GetRightEdge(curChunk);
+                        (Celltype[] leftcells, Vector2 leftstart, Vector2 leftend) = GetLeftEdge(chunk);
 
                         var minLen = Math.Min(rightcells.Length, leftcells.Length);
                         for (int i = 0; i < minLen; i++) {
                             if (rightcells[i] == Celltype.Wall || leftcells[i] == Celltype.Wall)
                                 continue;
 
-                            Gate curChunkGate = new(new Coord(rightstart.Row + i, rightstart.Col), Connections: []);
-                            Gate chunkGate = new(new Coord(leftstart.Row + i, leftstart.Col), Connections: []);
+                            Gate curChunkGate = new(new Vector2(rightstart.Row + i, rightstart.Col), Connections: []);
+                            Gate chunkGate = new(new Vector2(leftstart.Row + i, leftstart.Col), Connections: []);
 
                             curChunkGate.Connections.Add(chunkGate);
                             chunkGate.Connections.Add(curChunkGate);
@@ -116,16 +116,16 @@ namespace HPF.model
                     }
 
                 case Direction.Up: {
-                        (Celltype[] upcells, Coord upstart, Coord upend) = GetUpEdge(curChunk);
-                        (Celltype[] downcells, Coord downstart, Coord downend) = GetDownEdge(chunk);
+                        (Celltype[] upcells, Vector2 upstart, Vector2 upend) = GetUpEdge(curChunk);
+                        (Celltype[] downcells, Vector2 downstart, Vector2 downend) = GetDownEdge(chunk);
 
                         var minLen = Math.Min(upcells.Length, downcells.Length);
                         for (int i = 0; i < minLen; i++) {
                             if (upcells[i] == Celltype.Wall || downcells[i] == Celltype.Wall)
                                 continue;
 
-                            Gate curChunkGate = new(new Coord(upstart.Row, upstart.Col + i), Connections: []);
-                            Gate chunkGate = new(new Coord(downstart.Row, downstart.Col + i), Connections: []);
+                            Gate curChunkGate = new(new Vector2(upstart.Row, upstart.Col + i), Connections: []);
+                            Gate chunkGate = new(new Vector2(downstart.Row, downstart.Col + i), Connections: []);
 
                             curChunkGate.Connections.Add(chunkGate);
                             chunkGate.Connections.Add(curChunkGate);
@@ -140,16 +140,16 @@ namespace HPF.model
                     }
 
                 case Direction.Down: {
-                        (Celltype[] downcells, Coord downstart, Coord downend) = GetDownEdge(curChunk);
-                        (Celltype[] upcells, Coord upstart, Coord upend) = GetUpEdge(chunk);
+                        (Celltype[] downcells, Vector2 downstart, Vector2 downend) = GetDownEdge(curChunk);
+                        (Celltype[] upcells, Vector2 upstart, Vector2 upend) = GetUpEdge(chunk);
 
                         var minLen = Math.Min(downcells.Length, upcells.Length);
                         for (int i = 0; i < minLen; i++) {
                             if (downcells[i] == Celltype.Wall || upcells[i] == Celltype.Wall)
                                 continue;
 
-                            Gate curChunkGate = new(new Coord(downstart.Row, downstart.Col + i), Connections: []);
-                            Gate chunkGate = new(new Coord(upstart.Row, upstart.Col + i), Connections: []);
+                            Gate curChunkGate = new(new Vector2(downstart.Row, downstart.Col + i), Connections: []);
+                            Gate chunkGate = new(new Vector2(upstart.Row, upstart.Col + i), Connections: []);
 
                             curChunkGate.Connections.Add(chunkGate);
                             chunkGate.Connections.Add(curChunkGate);
@@ -165,7 +165,7 @@ namespace HPF.model
             }
         }
 
-        private (Celltype[], Coord, Coord) GetLeftEdge(Chunk curChunk) {
+        private (Celltype[], Vector2, Vector2) GetLeftEdge(Chunk curChunk) {
             int rowStart = curChunk.Corner1.Row;
             int rowCount = curChunk.Corner2.Row - curChunk.Corner1.Row;
             int col = curChunk.Corner1.Col;
@@ -174,13 +174,13 @@ namespace HPF.model
                 .Select(r => cells[r, col])
                 .ToArray();
 
-            Coord start = new Coord(rowStart, col);
-            Coord end = new Coord(curChunk.Corner2.Row - 1, col);
+            Vector2 start = new Vector2(rowStart, col);
+            Vector2 end = new Vector2(curChunk.Corner2.Row - 1, col);
 
             return (edgeCells, start, end);
         }
 
-        private (Celltype[], Coord, Coord) GetRightEdge(Chunk curChunk) {
+        private (Celltype[], Vector2, Vector2) GetRightEdge(Chunk curChunk) {
             int rowStart = curChunk.Corner1.Row;
             int rowCount = curChunk.Corner2.Row - curChunk.Corner1.Row;
             int col = curChunk.Corner2.Col - 1;
@@ -189,13 +189,13 @@ namespace HPF.model
                 .Select(r => cells[r, col])
                 .ToArray();
 
-            Coord start = new Coord(rowStart, col);
-            Coord end = new Coord(curChunk.Corner2.Row - 1, col);
+            Vector2 start = new Vector2(rowStart, col);
+            Vector2 end = new Vector2(curChunk.Corner2.Row - 1, col);
 
             return (edgeCells, start, end);
         }
 
-        private (Celltype[], Coord, Coord) GetUpEdge(Chunk curChunk) {
+        private (Celltype[], Vector2, Vector2) GetUpEdge(Chunk curChunk) {
             int colStart = curChunk.Corner1.Col;
             int colCount = curChunk.Corner2.Col - curChunk.Corner1.Col;
             int row = curChunk.Corner1.Row;
@@ -204,13 +204,13 @@ namespace HPF.model
                 .Select(c => cells[row, c])
                 .ToArray();
 
-            Coord start = new Coord(row, colStart);
-            Coord end = new Coord(row, curChunk.Corner2.Col - 1);
+            Vector2 start = new Vector2(row, colStart);
+            Vector2 end = new Vector2(row, curChunk.Corner2.Col - 1);
 
             return (edgeCells, start, end);
         }
 
-        private (Celltype[], Coord, Coord) GetDownEdge(Chunk curChunk) {
+        private (Celltype[], Vector2, Vector2) GetDownEdge(Chunk curChunk) {
             int colStart = curChunk.Corner1.Col;
             int colCount = curChunk.Corner2.Col - curChunk.Corner1.Col;
             int row = curChunk.Corner2.Row - 1;
@@ -219,8 +219,8 @@ namespace HPF.model
                 .Select(c => cells[row, c])
                 .ToArray();
 
-            Coord start = new Coord(row, colStart);
-            Coord end = new Coord(row, curChunk.Corner2.Col - 1);
+            Vector2 start = new Vector2(row, colStart);
+            Vector2 end = new Vector2(row, curChunk.Corner2.Col - 1);
 
             return (edgeCells, start, end);
         }
@@ -233,7 +233,7 @@ namespace HPF.model
             throw new Exception("Invalid direction");
         }
 
-        public Chunk GetChunk(Coord coord) => chunks[coord.Row / gridSize, coord.Col / gridSize];
+        public Chunk GetChunk(Vector2 coord) => chunks[coord.Row / gridSize, coord.Col / gridSize];
 
         public IEnumerable<Gate> GetAllGates() {
             var seen = new HashSet<Gate>();
@@ -246,22 +246,53 @@ namespace HPF.model
             }
         }
 
+        internal void InitConnections(IAlgo algo) {
+            // For each chunk:
+            for (int i = 0;i < chunks.GetLength(0);i++) {
+                for (int j = 0; i < chunks.GetLength(1); j++) {
+                    var chunk = chunks[i, j];
+                    //   - collect its gates
+                    List<Gate> gates = chunk.Gates;
+                    foreach (var gate in gates) { // foreach gate connect them VIKTOR
+                        Celltype[,] chunkmap = GetChunkMap(chunk);
+                        FinalPath res = algo.FindGoal(
+                            GetChunkMap(chunk), 
+                        )
+                    }
+                }
+            //   - for each gate, run a local search inside the chunk
+            //   - find which other gates are reachable
+            //   - store connections between reachable gates
+        }
+
     }
 
+        private Celltype[,] GetChunkMap(Chunk chunk) {
 
-}
+            int rowLen = chunk.Corner2.Row - chunk.Corner1.Row;
+            int colLen = chunk.Corner2.Col - chunk.Corner1.Col;
+            Celltype[,] output = new Celltype[rowLen, colLen];
+
+            for (int i = 0; i < rowLen; i++) {
+                for (int j = 0; j < colLen; j++) {
+                    output[i,j] = cells[chunk.Corner1.Row+i,chunk.Corner1.Col + j];
+                }
+            }
+            return output;
+        }
+    }
 
 
 
 //Cols →        0            4            8           10
 //            |------------|------------|------------|
-//Rows 0      | [0,0]      | [0,1]      | [0,2]      |
+//Rows 0      | [0,0]      g [0,1]      | [0,2]      |
 //            | (0,0)      | (0,4)      | (0,8)      |
-//            |    →       |    →       |    →       |
+//            |    →       |    →       g    →       |
 //            | (4,4)      | (4,8)      | (4,10)     |
-//Rows 4      |------------|------------|------------|
+//Rows 4      |-g----------|-g----------|------------|
 //            | [1,0]      | [1,1]      | [1,2]      |
-//            | (4,0)      | (4,4)      | (4,8)      |
+//            | (4,0)      g (4,4)      | (4,8)      |
 //            |    →       |    →       |    →       |
 //            | (7,4)      | (7,8)      | (7,10)     |
-//Rows 7      |------------|------------|------------|
+//Rows 7      |------g-----|------------|------------|

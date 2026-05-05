@@ -8,8 +8,8 @@ public static class Visualizers
     public static void AnimateAsAscii(PMap map, FinalPath finalPath, int delayMs = 120)
     {
         // Accumulate what we've processed so far
-        var visited = new HashSet<Coord>();
-        var path = new HashSet<Coord>();
+        var visited = new HashSet<Vector2>();
+        var path = new HashSet<Vector2>();
 
         Console.CursorVisible = false;
 
@@ -40,14 +40,14 @@ public static class Visualizers
         Console.ReadKey();
     }
 
-    private static void PrintFrame(PMap map, HashSet<Coord> visited, HashSet<Coord> path,
+    private static void PrintFrame(PMap map, HashSet<Vector2> visited, HashSet<Vector2> path,
                                     int pathLen, int stepIndex, int totalSteps)
     {
         for (int r = 0; r < map.N; r++)
         {
             for (int c = 0; c < map.M; c++)
             {
-                var coord = new Coord(r, c);
+                var coord = new Vector2(r, c);
 
                 if (coord == map.Start()) { Console.Write('S'); continue; }
                 if (coord == map.Goal) { Console.Write('G'); continue; }

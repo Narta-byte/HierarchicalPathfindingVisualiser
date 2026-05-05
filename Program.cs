@@ -33,7 +33,7 @@ public static class Program
 {
     public static void Main()
     {
-        // 1) Choose BFS
+        // 1) 
         IAlgo algo = new BFS();
 
         // 2) Create a map (S=start, G=goal, #=wall, .=empty)
@@ -43,10 +43,10 @@ public static class Program
             "S....#...." +
             ".##..#...." +
             ".#...#..#." +
-            ".#.#......#" +
-            ".#.#.#####." +
+            ".#.#.....#" +
+            ".#.#.###.#" +
             ".#...#...G" +
-            "....#......";
+            ".....#....";
 
         var pmap = new PMap(n, m);
         pmap.MapFromStr(n, m, mapStr);
@@ -58,6 +58,7 @@ public static class Program
         gridmap.SetIsUsingOneGatePerEdge(true);
         gridmap.InitChunks();
         gridmap.InitGates();
+        gridmap.InitConnections(algo);
 
         ChunkVisualizer.PrintChunksWithGates(gridmap);
 
@@ -75,16 +76,16 @@ public static class Program
         //Console.ReadKey();
     }
 
-    private static void PrintPathAsAscii(PMap map, List<Coord> path)
+    private static void PrintPathAsAscii(PMap map, List<Vector2> path)
     {
         // Build a lookup for the path cells
-        var pathSet = new HashSet<Coord>(path);
+        var pathSet = new HashSet<Vector2>(path);
 
         for (int r = 0; r < map.N; r++)
         {
             for (int c = 0; c < map.M; c++)
             {
-                var coord = new Coord(r, c);
+                var coord = new Vector2(r, c);
 
                 // Preserve S and G
                 if (coord == map.Start()) { Console.Write('S'); continue; }

@@ -18,7 +18,7 @@ public static class ChunkVisualizer {
 
         for (int r = 0; r < n; r++) {
             for (int c = 0; c < m; c++) {
-                var coord = new Coord(r, c);
+                var coord = new Vector2(r, c);
 
                 bool onV = (c % gridSize == 0);
                 bool onH = (r % gridSize == 0);
