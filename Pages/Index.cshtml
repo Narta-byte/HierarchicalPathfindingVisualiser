@@ -1,0 +1,452 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Pathfinding Visualizer";
+}
+
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+        background: #f0f0f0;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #topbar {
+        background: #dcdcdc;
+        border-bottom: 1px solid #aaa;
+        padding: 4px 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-shrink: 0;
+    }
+
+        #topbar b {
+            font-size: 13px;
+        }
+
+        #topbar small {
+            color: #555;
+        }
+
+    #main {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    #viewport-wrap {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        background: #fff;
+        border-right: 1px solid #aaa;
+    }
+
+    #viewport-label {
+        position: absolute;
+        top: 4px;
+        left: 6px;
+        font-size: 11px;
+        color: #888;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    #grid-canvas {
+        width: 100%;
+        height: 100%;
+        cursor: crosshair;
+        display: block;
+    }
+
+    #pan-controls {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+        #pan-controls button {
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+    #sidebar {
+        width: 160px;
+        background: #f0f0f0;
+        padding: 6px;
+        overflow-y: auto;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+        #sidebar fieldset {
+            border: 1px solid #aaa;
+            padding: 3px 5px 5px;
+        }
+
+        #sidebar legend {
+            font-size: 11px;
+            font-weight: bold;
+            padding: 0 2px;
+        }
+
+        #sidebar label {
+            display: block;
+            font-size: 12px;
+            margin: 2px 0;
+            cursor: pointer;
+        }
+
+        #sidebar .sub {
+            margin-left: 14px;
+            border-left: 1px solid #ccc;
+            padding-left: 5px;
+        }
+
+    .spinrow {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        margin: 3px 0;
+        font-size: 12px;
+    }
+
+        .spinrow input[type=number] {
+            width: 42px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+    #gridsize-row {
+        margin-left: 14px;
+        border-left: 1px solid #ccc;
+        padding-left: 5px;
+        display: none;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        margin: 2px 0;
+    }
+
+    .legend-swatch {
+        width: 12px;
+        height: 12px;
+        border: 1px solid #999;
+        flex-shrink: 0;
+    }
+
+    #bottombar {
+        background: #dcdcdc;
+        border-top: 1px solid #aaa;
+        padding: 4px 8px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    #metrics-block {
+        border: 1px dashed #999;
+        padding: 3px 8px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        font-size: 12px;
+    }
+
+    #anim-block {
+        border: 1px dashed #999;
+        padding: 3px 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+    }
+
+    #clear-btn {
+        margin-left: auto;
+        font-size: 12px;
+        cursor: pointer;
+    }
+</style>
+
+<div id="topbar">
+    <b>Pathfinding Visualizer</b>
+    <small>Left-click: draw &nbsp;|&nbsp; Right-click: erase &nbsp;|&nbsp; Scroll: zoom &nbsp;|&nbsp; Alt+drag / middle-drag: pan</small>
+</div>
+
+<div id="main">
+
+    <div id="viewport-wrap">
+        <div id="viewport-label">Viewport &mdash; <i>Panable, Drawable Grid</i></div>
+        <canvas id="grid-canvas"></canvas>
+        <div id="pan-controls">
+            <button id="zoom-in">+</button>
+            <button id="zoom-out">-</button>
+            <button id="pan-reset">&#8859;</button>
+        </div>
+    </div>
+
+    <div id="sidebar">
+
+        <fieldset>
+            <legend># Algo select</legend>
+            <label><input type="radio" name="algo" value="BFS" checked> BFS</label>
+            <div class="sub">
+                <label><input type="radio" name="algo" value="Bidirectional"> | -- Bidirectional</label>
+            </div>
+            <label><input type="radio" name="algo" value="DFS"> <i>DFS</i></label>
+            <label><input type="radio" name="algo" value="AStar"> <i>A*</i></label>
+            <label><input type="radio" name="algo" value="HPA"> <i>HPA*</i></label>
+        </fieldset>
+
+        <fieldset>
+            <legend># Map settings</legend>
+            <div style="font-size:11px;margin-bottom:2px;">Map size (2^n)</div>
+            <div class="spinrow">
+                <button id="mapsize-dec">-</button>
+                <input type="number" id="mapsize-val" value="16" readonly />
+                <button id="mapsize-inc">+</button>
+            </div>
+            <small id="mapsize-note" style="font-size:10px;color:#666;">16 × 16 cells</small>
+            <div style="margin-top:5px;">
+                <label><input type="checkbox" id="enable-grid" checked> Enable grid</label>
+            </div>
+            <div id="gridsize-row">
+                <div style="font-size:11px;margin-bottom:2px;">| -- Grid size</div>
+                <div class="spinrow">
+                    <button id="gridsize-dec">-</button>
+                    <input type="number" id="gridsize-val" value="4" readonly />
+                    <button id="gridsize-inc">+</button>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Draw mode</legend>
+            <label><input type="radio" name="drawmode" value="start" checked> Start</label>
+            <label><input type="radio" name="drawmode" value="goal"> Goal</label>
+            <label><input type="radio" name="drawmode" value="wall"> Wall</label>
+        </fieldset>
+
+        <fieldset>
+            <legend>Legend</legend>
+            <div class="legend-item"><div class="legend-swatch" style="background:#00cc66;"></div> Start</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#cc3333;"></div> Goal</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#333;"></div> Blocked</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#aac4ff;"></div> Visited</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#ffdd55;"></div> Path</div>
+        </fieldset>
+
+    </div>
+</div>
+
+<div id="bottombar">
+    <div id="metrics-block">
+        <span>Performance metrics</span>
+        <span>Time: <b id="metric-time">-- ms</b></span>
+        <span>Visited: <b id="metric-visited">--</b></span>
+        <span>Path len: <b id="metric-pathlen">--</b></span>
+    </div>
+    <div id="anim-block">
+        <input type="checkbox" id="anim-toggle" checked>
+        <label for="anim-toggle">Animation</label>
+        <button id="run-btn">{Run}</button>
+    </div>
+    <button id="clear-btn">Clear</button>
+</div>
+
+<script>
+    (function () {
+        const canvas = document.getElementById('grid-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let mapSize = 16, gridSize = 4, showGrid = true;
+        let cells = [], startCell = null, goalCell = null;
+        let offsetX = 0, offsetY = 0, scale = 1;
+        let isPanning = false, panStartX = 0, panStartY = 0, panOrigX = 0, panOrigY = 0;
+        let isDrawing = false, drawErase = false;
+        let isRunning = false, animId = null;
+
+        function getDrawMode() { return document.querySelector('input[name=drawmode]:checked').value; }
+
+        function initCells() {
+            cells = Array.from({length: mapSize}, () => new Array(mapSize).fill(0));
+            startCell = null; goalCell = null;
+            resetMetrics(); fitToView();
+        }
+
+        function fitToView() {
+            const cw = canvas.clientWidth, ch = canvas.clientHeight;
+            scale = Math.min(cw, ch) / mapSize * 0.9;
+            offsetX = (cw - scale * mapSize) / 2;
+            offsetY = (ch - scale * mapSize) / 2;
+        }
+
+        function resize() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; draw(); }
+        new ResizeObserver(resize).observe(canvas);
+
+        const COLORS = { 0:'#ffffff', 1:'#333333', 2:'#00cc66', 3:'#cc3333', 4:'#aac4ff', 5:'#ffdd55' };
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(offsetX, offsetY);
+            ctx.scale(scale, scale);
+
+            for (let r = 0; r < mapSize; r++)
+                for (let c = 0; c < mapSize; c++) {
+                    ctx.fillStyle = COLORS[cells[r][c]] || '#fff';
+                    ctx.fillRect(c, r, 1, 1);
+                }
+
+            if (showGrid && scale > 6) {
+                ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1/scale;
+                for (let i = 0; i <= mapSize; i++) {
+                    ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,mapSize); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(mapSize,i); ctx.stroke();
+                }
+            }
+            if (showGrid && gridSize > 0 && scale > 4) {
+                ctx.strokeStyle = 'rgba(0,0,180,0.18)'; ctx.lineWidth = 2/scale;
+                for (let i = 0; i <= mapSize; i += gridSize) {
+                    ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,mapSize); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(mapSize,i); ctx.stroke();
+                }
+            }
+            ctx.strokeStyle = '#666'; ctx.lineWidth = 2/scale;
+            ctx.strokeRect(0, 0, mapSize, mapSize);
+            ctx.restore();
+        }
+
+        function cellAt(mx, my) {
+            const c = Math.floor((mx - offsetX) / scale), r = Math.floor((my - offsetY) / scale);
+            return (r<0||r>=mapSize||c<0||c>=mapSize) ? null : {r, c};
+        }
+
+        function applyDraw(mx, my, erase) {
+            const cell = cellAt(mx, my); if (!cell) return;
+            const {r, c} = cell;
+            if (cells[r][c]===4||cells[r][c]===5) cells[r][c]=0;
+            if (erase) {
+                if (startCell&&startCell.r===r&&startCell.c===c) startCell=null;
+                if (goalCell &&goalCell.r ===r&&goalCell.c ===c) goalCell =null;
+                cells[r][c]=0;
+            } else {
+                const m = getDrawMode();
+                if (m==='wall'&&cells[r][c]!==2&&cells[r][c]!==3) cells[r][c]=1;
+                else if (m==='start') { if(startCell) cells[startCell.r][startCell.c]=0; startCell={r,c}; cells[r][c]=2; }
+                else if (m==='goal')  { if(goalCell)  cells[goalCell.r][goalCell.c]=0;   goalCell={r,c};  cells[r][c]=3; }
+            }
+            draw();
+        }
+
+        canvas.addEventListener('mousedown', e => {
+            e.preventDefault();
+            if (e.button===1||(e.button===0&&e.altKey)) { isPanning=true; panStartX=e.clientX; panStartY=e.clientY; panOrigX=offsetX; panOrigY=offsetY; canvas.style.cursor='move'; }
+            else if (e.button===2) { isDrawing=true; drawErase=true;  applyDraw(e.offsetX,e.offsetY,true);  }
+            else                   { isDrawing=true; drawErase=false; applyDraw(e.offsetX,e.offsetY,false); }
+        });
+        canvas.addEventListener('mousemove', e => {
+            if (isPanning) { offsetX=panOrigX+(e.clientX-panStartX); offsetY=panOrigY+(e.clientY-panStartY); draw(); }
+            else if (isDrawing&&getDrawMode()==='wall') applyDraw(e.offsetX,e.offsetY,drawErase);
+        });
+        window.addEventListener('mouseup', () => { isPanning=false; isDrawing=false; canvas.style.cursor='crosshair'; });
+        canvas.addEventListener('contextmenu', e => e.preventDefault());
+        canvas.addEventListener('wheel', e => {
+            e.preventDefault();
+            const f=e.deltaY<0?1.1:0.91;
+            offsetX=e.offsetX-(e.offsetX-offsetX)*f; offsetY=e.offsetY-(e.offsetY-offsetY)*f; scale*=f; draw();
+        }, {passive:false});
+
+        document.getElementById('zoom-in').onclick  = () => { const cx=canvas.width/2,cy=canvas.height/2; offsetX=cx-(cx-offsetX)*1.2; offsetY=cy-(cy-offsetY)*1.2; scale*=1.2; draw(); };
+        document.getElementById('zoom-out').onclick = () => { const cx=canvas.width/2,cy=canvas.height/2; offsetX=cx-(cx-offsetX)/1.2; offsetY=cy-(cy-offsetY)/1.2; scale/=1.2; draw(); };
+        document.getElementById('pan-reset').onclick = () => { fitToView(); draw(); };
+
+        const SIZES=[4,8,16,32,64,128,256,512]; let sizeIdx=2;
+        function updateMapSize() { mapSize=SIZES[sizeIdx]; document.getElementById('mapsize-val').value=mapSize; document.getElementById('mapsize-note').textContent=mapSize+' × '+mapSize+' cells'; initCells(); }
+        document.getElementById('mapsize-inc').onclick = () => { if(sizeIdx<SIZES.length-1){sizeIdx++;updateMapSize();} };
+        document.getElementById('mapsize-dec').onclick = () => { if(sizeIdx>0){sizeIdx--;updateMapSize();} };
+
+        document.getElementById('gridsize-inc').onclick = () => { const v=document.getElementById('gridsize-val'); v.value=gridSize=Math.min(+v.value+1,32); draw(); };
+        document.getElementById('gridsize-dec').onclick = () => { const v=document.getElementById('gridsize-val'); v.value=gridSize=Math.max(+v.value-1,2); draw(); };
+
+        document.getElementById('enable-grid').onchange = function() {
+            showGrid=this.checked;
+            document.getElementById('gridsize-row').style.display=showGrid?'block':'none';
+            draw();
+        };
+        document.getElementById('gridsize-row').style.display='block';
+
+        document.getElementById('clear-btn').onclick = () => { if(animId){cancelAnimationFrame(animId);animId=null;} isRunning=false; initCells(); };
+
+        function resetMetrics() { document.getElementById('metric-time').textContent='-- ms'; document.getElementById('metric-visited').textContent='--'; document.getElementById('metric-pathlen').textContent='--'; }
+        function setMetrics(ms,v,p) { document.getElementById('metric-time').textContent=ms+' ms'; document.getElementById('metric-visited').textContent=v; document.getElementById('metric-pathlen').textContent=p; }
+
+        function bfs() {
+            if (!startCell||!goalCell) return null;
+            const dist=Array.from({length:mapSize},()=>new Array(mapSize).fill(-1));
+            const prev=Array.from({length:mapSize},()=>new Array(mapSize).fill(null));
+            const queue=[{r:startCell.r,c:startCell.c}], dirs=[[0,1],[1,0],[0,-1],[-1,0]], visited=[];
+            dist[startCell.r][startCell.c]=0;
+            while (queue.length) {
+                const {r,c}=queue.shift();
+                if (r===goalCell.r&&c===goalCell.c) { const path=[]; let cur={r,c}; while(cur){path.push(cur);cur=prev[cur.r][cur.c];} return {visited,path:path.reverse()}; }
+                for (const [dr,dc] of dirs) {
+                    const nr=r+dr,nc=c+dc;
+                    if(nr<0||nr>=mapSize||nc<0||nc>=mapSize||cells[nr][nc]===1||dist[nr][nc]!==-1) continue;
+                    dist[nr][nc]=dist[r][c]+1; prev[nr][nc]={r,c}; queue.push({r:nr,c:nc});
+                    if(cells[nr][nc]!==2&&cells[nr][nc]!==3) visited.push({r:nr,c:nc});
+                }
+            }
+            return {visited,path:null};
+        }
+
+        document.getElementById('run-btn').onclick = () => {
+            if (isRunning||!startCell||!goalCell) return;
+            for(let r=0;r<mapSize;r++) for(let c=0;c<mapSize;c++) if(cells[r][c]===4||cells[r][c]===5) cells[r][c]=0;
+            resetMetrics();
+            const t0=performance.now(), result=bfs(), elapsed=(performance.now()-t0).toFixed(1);
+            if (!result) return;
+            const {visited,path}=result, animOn=document.getElementById('anim-toggle').checked;
+            if (!animOn) {
+                visited.forEach(({r,c})=>{if(cells[r][c]===0)cells[r][c]=4;});
+                if(path) path.forEach(({r,c})=>{if(cells[r][c]!==2&&cells[r][c]!==3)cells[r][c]=5;});
+                setMetrics(elapsed,visited.length,path?path.length:0); draw(); return;
+            }
+            isRunning=true; let vi=0;
+            function stepV() {
+                for(let i=0;i<4&&vi<visited.length;i++,vi++) if(cells[visited[vi].r][visited[vi].c]===0) cells[visited[vi].r][visited[vi].c]=4;
+                draw();
+                if(vi<visited.length) { animId=requestAnimationFrame(stepV); }
+                else { let pi=0; function stepP(){ if(!path||pi>=path.length){isRunning=false;setMetrics(elapsed,visited.length,path?path.length:0);return;} const{r,c}=path[pi++];if(cells[r][c]!==2&&cells[r][c]!==3)cells[r][c]=5;draw();animId=requestAnimationFrame(stepP);} stepP(); }
+            }
+            stepV();
+        };
+
+        initCells(); draw();
+    })();
+</script>
