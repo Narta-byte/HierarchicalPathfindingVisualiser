@@ -4,12 +4,12 @@ using System.Diagnostics;
 namespace HPF.model {
     public record Chunk(Vector2 Corner1, Vector2 Corner2, List<Node> Gates);
     public enum Direction { Up, Down, Left, Right }
-   
+
     public class GridMap : PMap {
         public bool isUsingOneGatePerEdge = false;
         public GridMap SetIsUsingOneGatePerEdge(bool toggle) {
             isUsingOneGatePerEdge = toggle;
-            return this;       
+            return this;
         }
         int gridSize = 4;
 
@@ -290,9 +290,9 @@ namespace HPF.model {
 
         private Vector2 GetLocalVector2(Chunk chunk, Vector2 pos) {
             Debug.Assert(chunk != null);
-            Debug.Assert(pos.Row >= chunk.Corner1.Row && pos.Row < chunk.Corner2.Row, message:$"input vector2 out of bounds row : {pos.Row}");
+            Debug.Assert(pos.Row >= chunk.Corner1.Row && pos.Row < chunk.Corner2.Row, message: $"input vector2 out of bounds row : {pos.Row}");
             Debug.Assert(pos.Col >= chunk.Corner1.Col && pos.Col < chunk.Corner2.Col);
-            
+
             return new Vector2(pos.Row - chunk.Corner1.Row, pos.Col - chunk.Corner1.Col);
         }
 
@@ -362,10 +362,37 @@ namespace HPF.model {
 
 
 
-    }
-    public FinalPath GetGridPath(Dictionary<Vector2, Node> map,) {
+    
+    public void GetGridPath(Dictionary<Vector2, Node> map, IAlgo algo) {
+            Node startNode = map[base.start];
+            Node goalNode = map[base.goal];
 
-        } 
+            // - Get starting chunk
+            Chunk startChunk = GetChunk(start);
+            Chunk goalChunk = GetChunk(goal);
+
+            //Node newStartNode = new Node(start, []);
+            //newStartNode.Connections.Add(startChunk.Gates.First());
+
+            //Node newGoalNode = new Node(goal, []);
+            //newGoalNode.Connections.Add(goalChunk.Gates.First());
+
+            FinalPath chunkpath = algo.FindGoal(startChunk.Gates.First(), goalChunk.Gates.First());
+            
+            Debug.Assert(chunkpath.path.Count > 0, "Chunk path not reachable");
+
+            List<Chunk> chunksInPath = new List<Chunk>();
+            foreach (Vector2 nodepos in chunkpath.path) {
+                var node = 
+            }
+
+            Console.WriteLine("asdf");
+            // - Get Connected chunks to goal
+            // - 
+            // - 
+            //throw new Exception();
+        }
+    } 
 }
 
 
