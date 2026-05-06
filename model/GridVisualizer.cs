@@ -11,7 +11,7 @@ public static class ChunkVisualizer {
 
         // Collect gate coordinates
         var gateSet = gridMap.GetAllGates()
-            .Select(g => g.Coord)
+            .Select(g => g.Pos)
             .ToHashSet();
 
         Console.CursorVisible = false;

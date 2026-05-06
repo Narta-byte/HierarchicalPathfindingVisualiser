@@ -1,4 +1,8 @@
-﻿namespace HPF.model {
+﻿using System.ComponentModel;
+using System.Diagnostics;
+using static HPF.model.PMap;
+
+namespace HPF.model {
     public class PMap(int n, int m) {
         public enum Celltype {
             Empty,
@@ -22,7 +26,7 @@
         public bool IsWall(int row, int col)
             => cells[row, col] == Celltype.Wall;
 
-        public void MapFromStr(int n, int m, string mapStr) {
+        public PMap MapFromStr(int n, int m, string mapStr) {
             if (mapStr.Length != n * m)
                 throw new ArgumentException(
                     $"mapStr length must be {n * m}, but was {mapStr.Length}");
@@ -50,7 +54,58 @@
                     }
                 }
             }
+            return this;
         }
+
+        public Dictionary<Vector2, Node> ToNodes(Celltype[,] map) {
+            int rows = map.GetLength(0);
+            int cols = map.GetLength(1);
+
+            var nodes = new Dictionary<Vector2, Node>();
+
+            // Create one node per walkable cell
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    if (map[r, c] == Celltype.Wall)
+                        continue;
+
+                    var pos = new Vector2(r, c);
+                    nodes[pos] = new Node(pos, new List<Node>());
+                }
+            }
+
+            // Connect neighbors
+            var dirs = new (int dr, int dc)[]
+            {
+                (-1, 0),
+                (1, 0),
+                (0, -1),
+                (0, 1)
+            };
+
+            foreach (var node in nodes.Values) {
+                foreach (var (dr, dc) in dirs) {
+                    int nr = node.Pos.Row + dr;
+                    int nc = node.Pos.Col + dc;
+
+                    if (nr < 0 || nc < 0 || nr >= rows || nc >= cols)
+                        continue;
+
+                    if (map[nr, nc] == Celltype.Wall)
+                        continue;
+
+                    var neighborPos = new Vector2(nr, nc);
+
+                    if (nodes.TryGetValue(neighborPos, out var neighbor)) {
+                        if (!node.Connections.Contains(neighbor))
+                            node.Connections.Add(neighbor);
+                    }
+                }
+            }
+
+            return nodes;
+        }
+
 
 
     }

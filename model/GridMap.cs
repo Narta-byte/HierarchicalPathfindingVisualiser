@@ -1,16 +1,18 @@
 ﻿
-namespace HPF.model
-{
-    public record Chunk(Vector2 Corner1, Vector2 Corner2, List<Gate> Gates);
+using System.Diagnostics;
+
+namespace HPF.model {
+    public record Chunk(Vector2 Corner1, Vector2 Corner2, List<Node> Gates);
     public enum Direction { Up, Down, Left, Right }
-    public record Gate(Vector2 Coord, List<Gate> Connections);
- 
-    public class GridMap : PMap
-    {
-        public bool isUsingOneGatePerEdge = false;
-        public void SetIsUsingOneGatePerEdge(bool toggle) => isUsingOneGatePerEdge = toggle;
-        int gridSize = 4;
    
+    public class GridMap : PMap {
+        public bool isUsingOneGatePerEdge = false;
+        public GridMap SetIsUsingOneGatePerEdge(bool toggle) {
+            isUsingOneGatePerEdge = toggle;
+            return this;       
+        }
+        int gridSize = 4;
+
         public int GridSize => gridSize;
 
         Chunk[,] chunks = new Chunk[0, 0];
@@ -24,7 +26,7 @@ namespace HPF.model
             chunks = new Chunk[chunkRows, chunkCols];
         }
 
-        public void InitChunks() {
+        public GridMap InitChunks() {
             int chunkRows = (N + gridSize - 1) / gridSize;
             int chunkCols = (M + gridSize - 1) / gridSize;
 
@@ -41,28 +43,30 @@ namespace HPF.model
                     chunks[cr, cc] = new Chunk(
                         new Vector2(Row: r1, Col: c1),
                         new Vector2(Row: r2, Col: c2),
-                        new List<Gate>()
+                        new List<Node>()
                     );
                 }
             }
+            return this;
         }
 
-        public void InitGates() {
-            List<(int,int)> directions = new List<(int,int)> { (0,1), (1,0)};
+        public GridMap InitGates() {
+            List<(int, int)> directions = new List<(int, int)> { (0, 1), (1, 0) };
             for (int i = 0; i < chunks.GetLength(0); i++) {
                 for (int j = 0; j < chunks.GetLength(1); j++) {
-                    Chunk curChunk = chunks[i,j];
-                    foreach ((int,int) dir in directions) {
+                    Chunk curChunk = chunks[i, j];
+                    foreach ((int, int) dir in directions) {
                         int rowdir = i + dir.Item1;
                         int coldir = j + dir.Item2;
                         if (rowdir < 0 || rowdir >= chunks.GetLength(0) || coldir < 0 || coldir >= chunks.GetLength(1))
                             continue;
 
 
-                            FindGates(curChunk, chunks[rowdir, coldir], dir);
+                        FindGates(curChunk, chunks[rowdir, coldir], dir);
                     }
                 }
             }
+            return this;
 
         }
 
@@ -77,8 +81,8 @@ namespace HPF.model
                             if (leftcells[i] == Celltype.Wall || rightcells[i] == Celltype.Wall)
                                 continue;
 
-                            Gate curChunkGate = new(new Vector2(leftstart.Row + i, leftstart.Col), Connections: []);
-                            Gate chunkGate = new(new Vector2(rightstart.Row + i, rightstart.Col), Connections: []);
+                            Node curChunkGate = new(new Vector2(leftstart.Row + i, leftstart.Col), Connections: []);
+                            Node chunkGate = new(new Vector2(rightstart.Row + i, rightstart.Col), Connections: []);
 
                             curChunkGate.Connections.Add(chunkGate);
                             chunkGate.Connections.Add(curChunkGate);
@@ -100,8 +104,8 @@ namespace HPF.model
                             if (rightcells[i] == Celltype.Wall || leftcells[i] == Celltype.Wall)
                                 continue;
 
-                            Gate curChunkGate = new(new Vector2(rightstart.Row + i, rightstart.Col), Connections: []);
-                            Gate chunkGate = new(new Vector2(leftstart.Row + i, leftstart.Col), Connections: []);
+                            Node curChunkGate = new(new Vector2(rightstart.Row + i, rightstart.Col), Connections: []);
+                            Node chunkGate = new(new Vector2(leftstart.Row + i, leftstart.Col), Connections: []);
 
                             curChunkGate.Connections.Add(chunkGate);
                             chunkGate.Connections.Add(curChunkGate);
@@ -124,8 +128,8 @@ namespace HPF.model
                             if (upcells[i] == Celltype.Wall || downcells[i] == Celltype.Wall)
                                 continue;
 
-                            Gate curChunkGate = new(new Vector2(upstart.Row, upstart.Col + i), Connections: []);
-                            Gate chunkGate = new(new Vector2(downstart.Row, downstart.Col + i), Connections: []);
+                            Node curChunkGate = new(new Vector2(upstart.Row, upstart.Col + i), Connections: []);
+                            Node chunkGate = new(new Vector2(downstart.Row, downstart.Col + i), Connections: []);
 
                             curChunkGate.Connections.Add(chunkGate);
                             chunkGate.Connections.Add(curChunkGate);
@@ -148,8 +152,8 @@ namespace HPF.model
                             if (downcells[i] == Celltype.Wall || upcells[i] == Celltype.Wall)
                                 continue;
 
-                            Gate curChunkGate = new(new Vector2(downstart.Row, downstart.Col + i), Connections: []);
-                            Gate chunkGate = new(new Vector2(upstart.Row, upstart.Col + i), Connections: []);
+                            Node curChunkGate = new(new Vector2(downstart.Row, downstart.Col + i), Connections: []);
+                            Node chunkGate = new(new Vector2(upstart.Row, upstart.Col + i), Connections: []);
 
                             curChunkGate.Connections.Add(chunkGate);
                             chunkGate.Connections.Add(curChunkGate);
@@ -226,17 +230,17 @@ namespace HPF.model
         }
 
         private Direction GetDirection((int, int) dir) {
-            if (dir == (0,1)) return Direction.Right;
-            if (dir == (1,0)) return Direction.Down;
-            if (dir == (0,-1)) return Direction.Left;
-            if (dir == (-1,0)) return Direction.Up;
+            if (dir == (0, 1)) return Direction.Right;
+            if (dir == (1, 0)) return Direction.Down;
+            if (dir == (0, -1)) return Direction.Left;
+            if (dir == (-1, 0)) return Direction.Up;
             throw new Exception("Invalid direction");
         }
 
         public Chunk GetChunk(Vector2 coord) => chunks[coord.Row / gridSize, coord.Col / gridSize];
 
-        public IEnumerable<Gate> GetAllGates() {
-            var seen = new HashSet<Gate>();
+        public IEnumerable<Node> GetAllGates() {
+            var seen = new HashSet<Node>();
             for (int i = 0; i < chunks.GetLength(0); i++) {
                 for (int j = 0; j < chunks.GetLength(1); j++) {
                     foreach (var gate in chunks[i, j].Gates)
@@ -246,28 +250,53 @@ namespace HPF.model
             }
         }
 
-        internal void InitConnections(IAlgo algo) {
-            // For each chunk:
-            for (int i = 0;i < chunks.GetLength(0);i++) {
-                for (int j = 0; i < chunks.GetLength(1); j++) {
+        internal GridMap InitConnections(IAlgo algo) {
+            for (int i = 0; i < chunks.GetLength(0); i++) {
+                for (int j = 0; j < chunks.GetLength(1); j++) {
                     var chunk = chunks[i, j];
-                    //   - collect its gates
-                    List<Gate> gates = chunk.Gates;
-                    foreach (var gate in gates) { // foreach gate connect them VIKTOR
-                        Celltype[,] chunkmap = GetChunkMap(chunk);
-                        FinalPath res = algo.FindGoal(
-                            GetChunkMap(chunk), 
-                        )
+                    var gates = chunk.Gates;
+
+                    if (gates.Count < 2)
+                        continue;
+
+                    // Build local graph for this chunk once
+                    var nodes = ChunkToNodes(chunk);
+
+                    for (int u = 0; u < gates.Count; u++) {
+                        if (!nodes.TryGetValue(GetLocalVector2(chunk, gates[u].Pos), out var startNode))
+                            continue;
+
+                        for (int v = u + 1; v < gates.Count; v++) {
+                            if (!nodes.TryGetValue(GetLocalVector2(chunk, gates[v].Pos), out var goalNode))
+                                continue;
+
+                            FinalPath res = algo.FindGoal(startNode, goalNode);
+
+                            if (res.path.Count > 0) {
+                                if (!gates[u].Connections.Contains(gates[v]))
+                                    gates[u].Connections.Add(gates[v]);
+
+                                if (!gates[v].Connections.Contains(gates[u]))
+                                    gates[v].Connections.Add(gates[u]);
+                            }
+                        }
                     }
                 }
-            //   - for each gate, run a local search inside the chunk
-            //   - find which other gates are reachable
-            //   - store connections between reachable gates
+            }
+
+            return this;
         }
 
-    }
 
-        private Celltype[,] GetChunkMap(Chunk chunk) {
+        private Vector2 GetLocalVector2(Chunk chunk, Vector2 pos) {
+            Debug.Assert(chunk != null);
+            Debug.Assert(pos.Row >= chunk.Corner1.Row && pos.Row < chunk.Corner2.Row, message:$"input vector2 out of bounds row : {pos.Row}");
+            Debug.Assert(pos.Col >= chunk.Corner1.Col && pos.Col < chunk.Corner2.Col);
+            
+            return new Vector2(pos.Row - chunk.Corner1.Row, pos.Col - chunk.Corner1.Col);
+        }
+
+        private Celltype[,] GetLocalChunk(Chunk chunk) {
 
             int rowLen = chunk.Corner2.Row - chunk.Corner1.Row;
             int colLen = chunk.Corner2.Col - chunk.Corner1.Col;
@@ -275,12 +304,69 @@ namespace HPF.model
 
             for (int i = 0; i < rowLen; i++) {
                 for (int j = 0; j < colLen; j++) {
-                    output[i,j] = cells[chunk.Corner1.Row+i,chunk.Corner1.Col + j];
+                    output[i, j] = cells[chunk.Corner1.Row + i, chunk.Corner1.Col + j];
                 }
             }
             return output;
         }
+        private Dictionary<Vector2, Node> ChunkToNodes(Chunk chunk) {
+            Celltype[,] chunkMap = GetLocalChunk(chunk);
+            int rows = chunkMap.GetLength(0);
+            int cols = chunkMap.GetLength(1);
+
+            var nodes = new Dictionary<Vector2, Node>();
+
+            // create walkable cell nodes
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    if (chunkMap[r, c] == Celltype.Wall)
+                        continue;
+
+                    var pos = new Vector2(r, c);
+                    nodes[pos] = new Node(pos, new List<Node>());
+                }
+            }
+
+            // connect cell neighbors
+            var dirs = new (int dr, int dc)[] {
+                (-1, 0), (1, 0), (0, -1), (0, 1)
+            };
+
+            foreach (var node in nodes.Values) {
+                foreach (var (dr, dc) in dirs) {
+                    var nextPos = new Vector2(node.Pos.Row + dr, node.Pos.Col + dc);
+                    if (nodes.TryGetValue(nextPos, out var neighbor)) {
+                        if (!node.Connections.Contains(neighbor))
+                            node.Connections.Add(neighbor);
+                    }
+                }
+            }
+
+            // attach gates
+            foreach (var gate in chunk.Gates) {
+                var localPos = GetLocalVector2(chunk, gate.Pos);
+
+                if (!nodes.TryGetValue(localPos, out var cellNode))
+                    throw new InvalidOperationException($"Gate at {gate.Pos} is not on a walkable cell.");
+
+                // connect gate node to the cell node
+                if (!gate.Connections.Contains(cellNode))
+                    gate.Connections.Add(cellNode);
+
+                if (!cellNode.Connections.Contains(gate))
+                    cellNode.Connections.Add(gate);
+            }
+
+            return nodes;
+        }
+
+
+
     }
+    public FinalPath GetGridPath(Dictionary<Vector2, Node> map,) {
+
+        } 
+}
 
 
 

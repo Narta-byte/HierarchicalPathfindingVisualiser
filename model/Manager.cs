@@ -15,7 +15,14 @@ public class Manager
         this.gridmap = gridmap;
     }
 
-    public FinalPath Run()
-        => selectedAlgo.FindGoal(map.cells, map.start, map.goal);
+    public FinalPath Run() {
+        var nodes = map.ToNodes(map.cells);   // build the full graph once
+        var startNode = nodes[map.start];
+        var goalNode = nodes[map.goal];
+
+        return selectedAlgo.FindGoal(startNode, goalNode);
+    }
+
+    //    => selectedAlgo.FindGoal(map.cells, map.start, map.goal);
 }
 

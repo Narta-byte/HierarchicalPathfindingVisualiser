@@ -38,15 +38,31 @@ public static class Program
 
         // 2) Create a map (S=start, G=goal, #=wall, .=empty)
         //    NOTE: MapFromStr expects ALL rows concatenated into one string.
-        int n = 7, m = 10;
+        //int n = 7, m = 10;
+        //string mapStr =
+        //    "S....#...." +
+        //    ".##..#...." +
+        //    ".#...#..#." +
+        //    ".#.#.....#" +
+        //    ".#.#.###.#" +
+        //    ".#...#...G" +
+        //    ".....#....";
+
+        int n = 8, m = 16;
         string mapStr =
-            "S....#...." +
-            ".##..#...." +
-            ".#...#..#." +
-            ".#.#.....#" +
-            ".#.#.###.#" +
-            ".#...#...G" +
-            ".....#....";
+            "S..#........#..." +
+            "...#........#..." +
+            "...#........#..." +
+            "...#........####" +
+            "...#............" +
+            "...#...........G" +
+            "................" +
+            "...#............";
+
+        //int n = 32, m = 64;
+        //string mapStr = LabyrinthGenerator.Generate(n, m, wallChance: 0.50);
+
+        LabyrinthGenerator.PrintAsRows(mapStr,n,m);
 
         var pmap = new PMap(n, m);
         pmap.MapFromStr(n, m, mapStr);
@@ -54,26 +70,26 @@ public static class Program
         // 3) If you have a GridMap type, create it (stubbed here)
         //    If your GridMap constructor differs, adjust accordingly.
         GridMap gridmap = new GridMap(n, m, gridSize: 4);
-        gridmap.MapFromStr(n,m,mapStr);
-        gridmap.SetIsUsingOneGatePerEdge(true);
-        gridmap.InitChunks();
-        gridmap.InitGates();
-        gridmap.InitConnections(algo);
+        gridmap.MapFromStr(n, m, mapStr);
+        gridmap.SetIsUsingOneGatePerEdge(true)
+               .InitChunks()
+               .InitGates()
+               .InitConnections(algo);
 
-        ChunkVisualizer.PrintChunksWithGates(gridmap);
+        //ChunkVisualizer.PrintChunksWithGates(gridmap);
+        //ConnectionVisualizer.PrintConnections(gridmap);
+        // 4) Run solver through Manager
+        var manager = new Manager(algo, pmap, gridmap);
+        FinalPath result = manager.Run();
 
-        //// 4) Run solver through Manager
-        //var manager = new Manager(algo, pmap, gridmap);
-        //FinalPath result = manager.Run();
-
-        //// 5) ASCII printer: print the chosen shortest path
-        ////PrintPathAsAscii(pmap, result.path);
-        //Visualizers.AnimateAsAscii(pmap, result, delayMs: 80);
+        // 5) ASCII printer: print the chosen shortest path
+        //PrintPathAsAscii(pmap, result.path);
+        Visualizers.AnimateAsAscii(pmap, result, delayMs: 80);
 
 
-        //// optionally pause at end
-        //Console.WriteLine("Done. Press any key...");
-        //Console.ReadKey();
+        // optionally pause at end
+        Console.WriteLine("Done. Press any key...");
+        Console.ReadKey();
     }
 
     private static void PrintPathAsAscii(PMap map, List<Vector2> path)
