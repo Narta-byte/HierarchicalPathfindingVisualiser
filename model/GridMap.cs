@@ -399,7 +399,9 @@ namespace HPF.model {
                 var localPos1 = chunkmap[GetLocalVector2(chunk, gate1.Pos)];
                 var localPos2 = chunkmap[GetLocalVector2(chunk, gate2.Pos)];
 
-                paths.Add(algo.FindGoal(localPos1, localPos2));
+                FinalPath localPath = algo.FindGoal(localPos1, localPos2); // this is the localpath it needs to become a globalpath
+                var globaPath = ToGlobalPath(chunk, localPath);
+                paths.Add(globaPath);
             }
             paths.Add(goalPath);
 
@@ -411,50 +413,40 @@ namespace HPF.model {
             }
             return result;
 
-
-             
-
-        //var chunkMap = ChunkToNodes(startChunk);
-
-        //Node startGate = ChooseNearestGate(startChunk, start, algo);
-        //Node goalGate = ChooseNearestGate(goalChunk, goal, algo);
-
-        //FinalPath chunkpath = algo.FindGoal(startGate, goalGate);
-            
-        //Debug.Assert(chunkpath.path.Count > 0, "Chunk path not reachable");
-
-        //List<FinalPath> paths = [];
-        //Chunk? curChunk = null;
-        //Node? lastGate = null;
-        //foreach (Node pathNode in chunkpath.nodes) {
-        //    if (curChunk == null){
-        //        curChunk = GetChunk(pathNode.Pos);
-        //        lastGate = pathNode;
-        //    }
-        //    else {
-        //        var chunkMap = ChunkToNodes(curChunk);
-        //        //Debug.Assert(chunkMap.Equals(ChunkToNodes(GetChunk(pathNode.Pos))), "They must be in the same chunk");
-
-        //        Node firstGate = chunkMap[GetLocalVector2(curChunk, lastGate.Pos)]; 
-        //        Node nextGate = chunkMap[GetLocalVector2(curChunk, pathNode.Pos)];
-        //        paths.Add(
-        //            algo.FindGoal(firstGate, nextGate)
-        //        );
-        //        lastGate = null;
-        //        curChunk = null;
-        //    }
-                
-        //}
-        //FinalPath result = new();
-        //foreach(FinalPath path in paths) {
-        //    result.path.AddRange(path.path);
-        //    result.animationSteps.AddRange(path.animationSteps);
-        //    result.nodes.AddRange(path.nodes);
-        //}
-        //Console.WriteLine("asdf");
-        //return result;
     }
+        private FinalPath ToGlobalPath(Chunk chunk, FinalPath localPath) {
+            var result = new FinalPath();
 
+            foreach (var pos in localPath.path) {
+                result.AddPath(new Vector2(
+                    pos.Row + chunk.Corner1.Row,
+                    pos.Col + chunk.Corner1.Col
+                ));
+            }
+
+            foreach (var node in localPath.nodes) {
+                result.AddNode(new Node(
+                    new Vector2(
+                        node.Pos.Row + chunk.Corner1.Row,
+                        node.Pos.Col + chunk.Corner1.Col
+                    ),
+                    new List<Node>()
+                ));
+            }
+
+            foreach (var step in localPath.animationSteps) {
+                result.AddAnimationStep(
+                    new Vector2(
+                        step.pos.Row + chunk.Corner1.Row,
+                        step.pos.Col + chunk.Corner1.Col
+                    ),
+                    step.isVisited,
+                    step.isPath
+                );
+            }
+
+            return result;
+        }
         private (Node Gate, FinalPath Path) GetConnectedGate(Chunk chunk, Vector2 pos, IAlgo algo) {
             List<Node> gates = chunk.Gates;
             var map = ChunkToNodes(chunk);
