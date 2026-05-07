@@ -1,5 +1,8 @@
 ﻿
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net.NetworkInformation;
+using System.Security.Cryptography;
 
 namespace HPF.model {
     public record Chunk(Vector2 Corner1, Vector2 Corner2, List<Node> Gates);
@@ -307,6 +310,7 @@ namespace HPF.model {
                     output[i, j] = cells[chunk.Corner1.Row + i, chunk.Corner1.Col + j];
                 }
             }
+            
             return output;
         }
         private Dictionary<Vector2, Node> ChunkToNodes(Chunk chunk) {
@@ -361,37 +365,138 @@ namespace HPF.model {
         }
 
 
-
-    
-    public void GetGridPath(Dictionary<Vector2, Node> map, IAlgo algo) {
-            Node startNode = map[base.start];
-            Node goalNode = map[base.goal];
-
-            // - Get starting chunk
+ 
+    public FinalPath GetGridPath(Dictionary<Vector2, Node> map, IAlgo algo) {
+            if (start == null || goal ==null) {
+                throw new Exception();
+            }
             Chunk startChunk = GetChunk(start);
             Chunk goalChunk = GetChunk(goal);
 
-            //Node newStartNode = new Node(start, []);
-            //newStartNode.Connections.Add(startChunk.Gates.First());
+            // find connected gate to the starting node
+            (Node startingGate, FinalPath startingPath) = GetConnectedGate(startChunk, start, algo);
+            // Similarly find the connected gate to the goal node
+            (Node goalGate, FinalPath goalPath) = GetConnectedGate(goalChunk, goal, algo);
 
-            //Node newGoalNode = new Node(goal, []);
-            //newGoalNode.Connections.Add(goalChunk.Gates.First());
-
-            FinalPath chunkpath = algo.FindGoal(startChunk.Gates.First(), goalChunk.Gates.First());
-            
-            Debug.Assert(chunkpath.path.Count > 0, "Chunk path not reachable");
-
-            List<Chunk> chunksInPath = new List<Chunk>();
-            foreach (Vector2 nodepos in chunkpath.path) {
-                var node = 
+            FinalPath chunkPath = algo.FindGoal(startingGate, goalGate);
+            //List<(Chunk c, Node entry, Node exit)> pairs = [];
+            var a = new List<Chunk>();
+            foreach (Node node in chunkPath.nodes) {
+                a.Add(GetChunk(node.Pos));
             }
+            List<FinalPath> paths = [startingPath];
 
-            Console.WriteLine("asdf");
-            // - Get Connected chunks to goal
-            // - 
-            // - 
-            //throw new Exception();
+            var pathnodes = chunkPath.nodes;
+            for (int i = 1; i < pathnodes.Count -2; i=i+2) {
+
+                Node gate1 = pathnodes[i];
+                Node gate2 = pathnodes[i+1];
+
+                Chunk chunk = GetChunk(gate1.Pos);
+                //Chunk chunk2 = GetChunk(gate2.Pos);
+                var chunkmap = ChunkToNodes(chunk);
+
+                var localPos1 = chunkmap[GetLocalVector2(chunk, gate1.Pos)];
+                var localPos2 = chunkmap[GetLocalVector2(chunk, gate2.Pos)];
+
+                paths.Add(algo.FindGoal(localPos1, localPos2));
+            }
+            paths.Add(goalPath);
+
+            FinalPath result = new();
+            foreach (FinalPath path in paths) {
+                result.path.AddRange(path.path);
+                result.animationSteps.AddRange(path.animationSteps);
+                result.nodes.AddRange(path.nodes);
+            }
+            return result;
+
+
+             
+
+        //var chunkMap = ChunkToNodes(startChunk);
+
+        //Node startGate = ChooseNearestGate(startChunk, start, algo);
+        //Node goalGate = ChooseNearestGate(goalChunk, goal, algo);
+
+        //FinalPath chunkpath = algo.FindGoal(startGate, goalGate);
+            
+        //Debug.Assert(chunkpath.path.Count > 0, "Chunk path not reachable");
+
+        //List<FinalPath> paths = [];
+        //Chunk? curChunk = null;
+        //Node? lastGate = null;
+        //foreach (Node pathNode in chunkpath.nodes) {
+        //    if (curChunk == null){
+        //        curChunk = GetChunk(pathNode.Pos);
+        //        lastGate = pathNode;
+        //    }
+        //    else {
+        //        var chunkMap = ChunkToNodes(curChunk);
+        //        //Debug.Assert(chunkMap.Equals(ChunkToNodes(GetChunk(pathNode.Pos))), "They must be in the same chunk");
+
+        //        Node firstGate = chunkMap[GetLocalVector2(curChunk, lastGate.Pos)]; 
+        //        Node nextGate = chunkMap[GetLocalVector2(curChunk, pathNode.Pos)];
+        //        paths.Add(
+        //            algo.FindGoal(firstGate, nextGate)
+        //        );
+        //        lastGate = null;
+        //        curChunk = null;
+        //    }
+                
+        //}
+        //FinalPath result = new();
+        //foreach(FinalPath path in paths) {
+        //    result.path.AddRange(path.path);
+        //    result.animationSteps.AddRange(path.animationSteps);
+        //    result.nodes.AddRange(path.nodes);
+        //}
+        //Console.WriteLine("asdf");
+        //return result;
+    }
+
+        private (Node Gate, FinalPath Path) GetConnectedGate(Chunk chunk, Vector2 pos, IAlgo algo) {
+            List<Node> gates = chunk.Gates;
+            var map = ChunkToNodes(chunk);
+            var localPos = GetLocalVector2(chunk, pos);
+            var startingNode = map[localPos];
+            int pathLength = int.MaxValue;
+            FinalPath path = new();
+            Node? closestGate = null;
+            foreach (Node gate in gates) {
+                path = algo.FindGoal(startingNode, gate);
+                if (path.path.Count <= 0)
+                    continue;
+                if (path.path.Count < pathLength || closestGate == null) {
+                    closestGate = gate;
+                    pathLength = path.path.Count;
+                
+                }
+            }
+            if (closestGate == null || path == null) 
+                throw new Exception();    
+            
+            return (closestGate, path);
         }
+
+        private Node ChooseNearestGate(Chunk startChunk, Vector2 start, IAlgo algo) {
+        List<Node> nodes = startChunk.Gates;
+
+        var map = ChunkToNodes(startChunk);
+        var localStart = GetLocalVector2(startChunk, start);
+
+        Node startNodeOrphan = new(localStart, []);
+        Node startNodeMap = map[localStart];
+
+        foreach (Node node in nodes) {
+            FinalPath path = algo.FindGoal(startNodeMap, map[GetLocalVector2(startChunk,node.Pos)]);
+            if (path.path.Count > 0) {
+                startNodeOrphan.Connections.Add(node);
+                node.Connections.Add(startNodeOrphan);
+            }
+        }
+        return startNodeOrphan;
+    }
     } 
 }
 

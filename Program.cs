@@ -49,16 +49,24 @@ public static class Program
         //    ".....#....";
 
         int n = 8, m = 16;
+        //string mapStr =
+        //    "S..#........#..." +
+        //    "...#........#..." +
+        //    "...#........#..." +
+        //    "...#........####" +
+        //    "...#............" +
+        //    "...#...........G" +
+        //    "................" +
+        //    "...#............";
         string mapStr =
-            "S..#........#..." +
-            "...#........#..." +
-            "...#........#..." +
-            "...#........####" +
-            "...#............" +
-            "...#...........G" +
-            "................" +
-            "...#............";
-
+           "............#..." +
+           "...#...#....#..." +
+           "##S#...#....#..." +
+           "...#...#....####" +
+           "...#...#....#..." +
+           "...#...#....#..G" +
+           "...#...#....#..." +
+           ".......#........";
         //int n = 32, m = 64;
         //string mapStr = LabyrinthGenerator.Generate(n, m, wallChance: 0.50);
 
@@ -69,13 +77,16 @@ public static class Program
 
         // 3) If you have a GridMap type, create it (stubbed here)
         //    If your GridMap constructor differs, adjust accordingly.
-        GridMap gridmap = new GridMap(n, m, gridSize: 2);
+        GridMap gridmap = new GridMap(n, m, gridSize: 4);
         gridmap.MapFromStr(n, m, mapStr);
         gridmap.SetIsUsingOneGatePerEdge(true)
                .InitChunks()
                .InitGates()
                .InitConnections(algo);
-        gridmap.GetGridPath(gridmap.ToNodes(gridmap.cells), algo);
+        var path = gridmap.GetGridPath(gridmap.ToNodes(gridmap.cells), algo);
+        //PrintPathAsAscii(gridmap, path.path);
+        Visualizers.AnimateAsAscii(gridmap, path, delayMs: 80);
+
         //ChunkVisualizer.PrintChunksWithGates(gridmap);
         ConnectionVisualizer.PrintConnections(gridmap);
         // 4) Run solver through Manager

@@ -31,6 +31,7 @@ namespace HPF.model {
 
                     foreach (var p in path) {
                         result.AddPath(p.Pos);
+                        result.AddNode(p);
                         result.AddAnimationStep(p.Pos, isVisited: false, isPath: true);
                     }
 
