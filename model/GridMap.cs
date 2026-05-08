@@ -365,8 +365,9 @@ namespace HPF.model {
         }
 
 
- 
-    public FinalPath GetGridPath(Dictionary<Vector2, Node> map, IAlgo algo) {
+    // Problems :
+    // - 
+    public FinalPath GetGridPath(IAlgo algo) {
             if (start == null || goal ==null) {
                 throw new Exception();
             }
@@ -380,7 +381,7 @@ namespace HPF.model {
 
             FinalPath chunkPath = algo.FindGoal(startingGate, goalGate);
             //List<(Chunk c, Node entry, Node exit)> pairs = [];
-            var a = new List<Chunk>();
+            var a = new HashSet<Chunk>();
             foreach (Node node in chunkPath.nodes) {
                 a.Add(GetChunk(node.Pos));
             }
@@ -455,7 +456,14 @@ namespace HPF.model {
             int pathLength = int.MaxValue;
             FinalPath path = new();
             Node? closestGate = null;
+            Console.WriteLine($"Chunk: {chunk.Corner1} -> {chunk.Corner2}");
+            Console.WriteLine($"Local pos: {localPos}");
+            Console.WriteLine($"Gates: {gates.Count}");
             foreach (Node gate in gates) {
+                
+                Console.WriteLine($"Testing gate {gate.Pos}");
+                Console.WriteLine($"Local gate pos: {GetLocalVector2(chunk, gate.Pos)}");
+                Console.WriteLine($"Path count: {path.path.Count}");
                 path = algo.FindGoal(startingNode, gate);
                 if (path.path.Count <= 0)
                     continue;

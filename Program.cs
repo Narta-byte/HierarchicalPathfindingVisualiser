@@ -83,7 +83,7 @@ public static class Program
                .InitChunks()
                .InitGates()
                .InitConnections(algo);
-        var path = gridmap.GetGridPath(gridmap.ToNodes(gridmap.cells), algo);
+        var path = gridmap.GetGridPath(algo);
         //PrintPathAsAscii(gridmap, path.path);
         Visualizers.AnimateAsAscii(gridmap, path, delayMs: 80);
 
