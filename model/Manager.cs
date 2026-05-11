@@ -20,6 +20,7 @@ public class Manager
         var startNode = nodes[map.start];
         var goalNode = nodes[map.goal];
 
+        
         return selectedAlgo.FindGoal(startNode, goalNode);
     }
 

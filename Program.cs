@@ -28,6 +28,7 @@
 
 
 using HPF.model;
+using System.Diagnostics;
 
 public static class Program
 {
@@ -48,7 +49,7 @@ public static class Program
         //    ".#...#...G" +
         //    ".....#....";
 
-        int n = 8, m = 16;
+        //int n = 8, m = 16;
         //string mapStr =
         //    "S..#........#..." +
         //    "...#........#..." +
@@ -67,15 +68,36 @@ public static class Program
         //   "...#...#....#..G" +
         //   "...#...#....#..." +
         //   ".......#........";
+        //string mapStr =
+        //   ".S.#........#..." +
+        //   "...#...#....#..." +
+        //   "##.###.#....#..." +
+        //   ".....#.#....####" +
+        //   "...#.#.#....#..." +
+        //   "...#.#.#....#..G" +
+        //   "...#.#.#....#..." +
+        //   ".......#........";
+        Stopwatch stopwatch = new Stopwatch();
+
+        int n = 16, m = 32;
+
         string mapStr =
-           ".S.#........#..." +
-           "...#...#....#..." +
-           "##.###.#....#..." +
-           "............####" +
-           "...#.#.#....#..." +
-           "...#.#.#....#..G" +
-           "...#.#.#....#..." +
-           ".......#........";
+           ".S.#...#....#......#........#..." +
+           "...#.#.#....#......#........#..." +
+           "...#.#.#....#......#........#..." +
+           ".....#.#....#......#........#..." +
+           "...###.#....#......#........#..." +
+           "...#........#......#........#..." +
+           "...#........#......#........#..." +
+           "...#........#......#........#..." +
+           "...#........#......#........#..." +
+           "...#........#......#........#..." +
+           "...#........#......#........#..." +
+           "...#........#......#........#..." +
+           "...#........#......#........#..." +
+           "...#........#......#........#..." +
+           "...#........#......#........#..." +
+           "...#...........................G";
         //int n = 32, m = 64;
         //string mapStr = LabyrinthGenerator.Generate(n, m, wallChance: 0.50);
 
@@ -88,22 +110,36 @@ public static class Program
         //    If your GridMap constructor differs, adjust accordingly.
         GridMap gridmap = new GridMap(n, m, gridSize: 4);
         gridmap.MapFromStr(n, m, mapStr);
-        gridmap.SetIsUsingOneGatePerEdge(true)
+        gridmap.SetIsUsingOneGatePerEdge(false)
                .InitChunks()
                .InitGates()
                .InitConnections(algo);
-        var path = gridmap.GetGridPath(algo);
         //PrintPathAsAscii(gridmap, path.path);
-        Visualizers.AnimateAsAscii(gridmap, path, delayMs: 80);
 
         //ChunkVisualizer.PrintChunksWithGates(gridmap);
-        ConnectionVisualizer.PrintConnections(gridmap);
+        stopwatch.Start();
+        for (int i = 0; i < 100; i++) {
+            var path = gridmap.GetGridPath(algo);
+            
+        }
+        stopwatch.Stop();
+        Console.WriteLine($"Time taken grid: {stopwatch.ElapsedMilliseconds} ms");
+        //Visualizers.AnimateAsAscii(gridmap, path, delayMs: 80);
+        //ConnectionVisualizer.PrintConnections(gridmap);
         // 4) Run solver through Manager
-        //var manager = new Manager(algo, pmap, gridmap);
-        //FinalPath result = manager.Run();
+        var manager = new Manager(algo, pmap, gridmap);
+        stopwatch.Restart();
+        for (int i = 0; i < 100; i++) {
+            FinalPath result = manager.Run();
+
+        }
+
+        stopwatch.Stop();
+        Console.WriteLine($"Time taken simple: {stopwatch.ElapsedMilliseconds} ms");
 
         //// 5) ASCII printer: print the chosen shortest path
         ////PrintPathAsAscii(pmap, result.path);
+        //
         //Visualizers.AnimateAsAscii(pmap, result, delayMs: 80);
 
 
@@ -112,33 +148,5 @@ public static class Program
         //Console.ReadKey();
     }
 
-    private static void PrintPathAsAscii(PMap map, List<Vector2> path)
-    {
-        // Build a lookup for the path cells
-        var pathSet = new HashSet<Vector2>(path);
-
-        for (int r = 0; r < map.N; r++)
-        {
-            for (int c = 0; c < map.M; c++)
-            {
-                var coord = new Vector2(r, c);
-
-                // Preserve S and G
-                if (coord == map.Start()) { Console.Write('S'); continue; }
-                if (coord == map.Goal) { Console.Write('G'); continue; }
-
-                // Walls
-                if (map.IsWall(r, c)) { Console.Write('#'); continue; }
-
-                // Path cells
-                if (pathSet.Contains(coord)) { Console.Write('*'); continue; }
-
-                // Empty
-                Console.Write('.');
-            }
-            Console.WriteLine();
-        }
-
-        Console.WriteLine($"Path length: {path.Count}");
-    }
+    
 }

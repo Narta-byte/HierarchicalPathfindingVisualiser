@@ -289,6 +289,12 @@ namespace HPF.model {
 
             return this;
         }
+        internal GridMap InitComponents() {
+
+
+
+            return this;
+        }
 
 
         private Vector2 GetLocalVector2(Chunk chunk, Vector2 pos) {
@@ -401,28 +407,8 @@ namespace HPF.model {
                     }
                 }
             }
-
-            // attach gates
-            //foreach (var gate in chunk.Gates) {
-            //    var gatePos = gate.Pos; // already global
-
-            //    if (!nodes.TryGetValue(gatePos, out var cellNode))
-            //        throw new InvalidOperationException(
-            //            $"Gate at {gatePos} is not on a walkable cell in chunk {chunk.Corner1}->{chunk.Corner2}.");
-
-            //    if (!gate.Connections.Contains(cellNode))
-            //        gate.Connections.Add(cellNode);
-
-            //    if (!cellNode.Connections.Contains(gate))
-            //        cellNode.Connections.Add(gate);
-            //}
-
             return nodes;
         }
-
-
-        // Problems :
-        // - 
         public FinalPath GetGridPath(IAlgo algo) {
             if (start == null || goal ==null) {
                 throw new Exception();
@@ -495,40 +481,6 @@ namespace HPF.model {
             return dr + dc == 1;
         }
 
-
-        private FinalPath ToGlobalPath(Chunk chunk, FinalPath localPath) {
-            var result = new FinalPath();
-
-            foreach (var pos in localPath.path) {
-                result.AddPath(new Vector2(
-                    pos.Row + chunk.Corner1.Row,
-                    pos.Col + chunk.Corner1.Col
-                ));
-            }
-
-            foreach (var node in localPath.nodes) {
-                result.AddNode(new Node(
-                    new Vector2(
-                        node.Pos.Row + chunk.Corner1.Row,
-                        node.Pos.Col + chunk.Corner1.Col
-                    ),
-                    new List<Node>()
-                ));
-            }
-
-            foreach (var step in localPath.animationSteps) {
-                result.AddAnimationStep(
-                    new Vector2(
-                        step.pos.Row + chunk.Corner1.Row,
-                        step.pos.Col + chunk.Corner1.Col
-                    ),
-                    step.isVisited,
-                    step.isPath
-                );
-            }
-
-            return result;
-        }
         private (Node Gate, FinalPath Path) GetConnectedGate(Chunk chunk, Vector2 pos, IAlgo algo) {
             List<Node> gates = chunk.Gates;
             var map = LocalChunkToNodes(chunk);
@@ -537,14 +489,8 @@ namespace HPF.model {
             int pathLength = int.MaxValue;
             FinalPath path = new();
             Node? closestGate = null;
-            Console.WriteLine($"Chunk: {chunk.Corner1} -> {chunk.Corner2}");
-            Console.WriteLine($"Local pos: {localPos}");
-            Console.WriteLine($"Gates: {gates.Count}");
             foreach (Node gate in gates) {
                 
-                Console.WriteLine($"Testing gate {gate.Pos}");
-                Console.WriteLine($"Local gate pos: {GetLocalVector2(chunk, gate.Pos)}");
-                Console.WriteLine($"Path count: {path.path.Count}");
                 path = algo.FindGoal(startingNode, gate);
                 if (path.path.Count <= 0)
                     continue;
@@ -560,24 +506,6 @@ namespace HPF.model {
             return (closestGate, path);
         }
 
-        private Node ChooseNearestGate(Chunk startChunk, Vector2 start, IAlgo algo) {
-        List<Node> nodes = startChunk.Gates;
-
-        var map = LocalChunkToNodes(startChunk);
-        var localStart = GetLocalVector2(startChunk, start);
-
-        Node startNodeOrphan = new(localStart, []);
-        Node startNodeMap = map[localStart];
-
-        foreach (Node node in nodes) {
-            FinalPath path = algo.FindGoal(startNodeMap, map[GetLocalVector2(startChunk,node.Pos)]);
-            if (path.path.Count > 0) {
-                startNodeOrphan.Connections.Add(node);
-                node.Connections.Add(startNodeOrphan);
-            }
-        }
-        return startNodeOrphan;
-    }
     } 
 }
 

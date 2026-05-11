@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using BenchmarkDotNet.Disassemblers;
+using System.ComponentModel;
 using System.Diagnostics;
 using static HPF.model.PMap;
 
@@ -105,7 +106,14 @@ namespace HPF.model {
 
             return nodes;
         }
+        public FinalPath Run(IAlgo algo) {
+            var nodes = ToNodes(cells);   // build the full graph once
+            var startNode = nodes[start];
+            var goalNode = nodes[goal];
 
+            FinalPath p = Run(algo);
+            return algo.FindGoal(startNode, goalNode);
+        }
 
 
     }

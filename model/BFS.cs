@@ -12,10 +12,8 @@ namespace HPF.model {
             queue.Enqueue(start);
             visited.Add(start);
             parent[start] = null;
-            //Console.WriteLine("######### BFS #########");
             while (queue.Count > 0) {
                 var current = queue.Dequeue();
-                //Console.WriteLine(current);
                 result.AddAnimationStep(current.Pos, isVisited: true, isPath: false);
 
                 if (current == goal) {
