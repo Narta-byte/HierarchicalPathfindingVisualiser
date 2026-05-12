@@ -27,6 +27,7 @@
 // ############################ Above is the default ASP.NET Core template code. Below is the actual code for your application. ############################
 
 
+using BenchmarkDotNet.Disassemblers;
 using HPF.model;
 using System.Diagnostics;
 
@@ -49,16 +50,16 @@ public static class Program
         //    ".#...#...G" +
         //    ".....#....";
 
-        //int n = 8, m = 16;
-        //string mapStr =
-        //    "S..#........#..." +
-        //    "...#........#..." +
-        //    "...#........#..." +
-        //    "...#........####" +
-        //    "...#............" +
-        //    "...#...........G" +
-        //    "................" +
-        //    "...#............";
+        int n = 8, m = 16;
+        string mapStr =
+            "S..#........#..." +
+            "...#........#..." +
+            "...#........#..." +
+            "...#........####" +
+            "...#............" +
+            "...#...........G" +
+            "................" +
+            "...#............";
         //string mapStr =
         //   "............#..." +
         //   "...#...#....#..." +
@@ -79,63 +80,91 @@ public static class Program
         //   ".......#........";
         Stopwatch stopwatch = new Stopwatch();
 
-        int n = 16, m = 32;
+        //int n = 16, m = 32;
 
-        string mapStr =
-           ".S.#...#....#......#........#..." +
-           "...#.#.#....#......#........#..." +
-           "...#.#.#....#......#........#..." +
-           ".....#.#....#......#........#..." +
-           "...###.#....#......#........#..." +
-           "...#........#......#........#..." +
-           "...#........#......#........#..." +
-           "...#........#......#........#..." +
-           "...#........#......#........#..." +
-           "...#........#......#........#..." +
-           "...#........#......#........#..." +
-           "...#........#......#........#..." +
-           "...#........#......#........#..." +
-           "...#........#......#........#..." +
-           "...#........#......#........#..." +
-           "...#...........................G";
-        //int n = 32, m = 64;
-        //string mapStr = LabyrinthGenerator.Generate(n, m, wallChance: 0.50);
+        ////string mapStr =
+        ////   ".S.#...#....#......#........#..." +
+        ////   "...#.#.#....#......#........#..." +
+        ////   "...#.#.#....#......#........#..." +
+        ////   ".....#.#....#......#........#..." +
+        ////   "...###.#....#......#........#..." +
+        ////   "...#........#......#........#..." +
+        ////   "...#........#......#........#..." +
+        ////   "...#........#......#........#..." +
+        ////   "...#........#......#........#..." +
+        ////   "...#........#......#........#..." +
+        ////   "...#........#......#........#..." +
+        ////   "...#........#......#........#..." +
+        ////   "...#........#......#........#..." +
+        ////   "...#........#......#........#..." +
+        ////   "...#........#......#........#..." +
+        ////   "...#...........................G";
+        //int n = 256, m = 256;
+        //string mapStr = LabyrinthGenerator.Generate(n, m, wallChance: 0.10);
 
-        LabyrinthGenerator.PrintAsRows(mapStr,n,m);
-
-        var pmap = new PMap(n, m);
-        pmap.MapFromStr(n, m, mapStr);
+        //LabyrinthGenerator.PrintAsRows(mapStr,n,m);
 
         // 3) If you have a GridMap type, create it (stubbed here)
         //    If your GridMap constructor differs, adjust accordingly.
-        GridMap gridmap = new GridMap(n, m, gridSize: 4);
+        GridMap gridmap = new GridMap(n, m, gridSize: 8);
         gridmap.MapFromStr(n, m, mapStr);
-        gridmap.SetIsUsingOneGatePerEdge(false)
+        gridmap.SetIsUsingOneGatePerEdge(true)
+               .InitComponents()
                .InitChunks()
                .InitGates()
                .InitConnections(algo);
-        //PrintPathAsAscii(gridmap, path.path);
+
+
+        //GridMapV2 gridmapv2 = new GridMapV2(n, m, gridSize: 4);
+        //gridmapv2.MapFromStr(n, m, mapStr);
+        //gridmapv2.SetIsUsingOneGatePerEdge(true)
+        //         .InitChunks()
+        //         .InitGatesV2()
+        //         .InitConnections(algo)
+        //         .ConnectStartGate(algo)
+        //         .ConnectGoalGate(algo);
+
+
+
+        //ChunkVisualizer.PrintChunksWithGates(gridmapv2);
+        //ConnectionVisualizer.PrintConnections(gridmapv2);
+
+
+        //var pa = gridmapv2.GetGridPath(algo);
+
+        ////PrintPathAsAscii(gridmap, pa.path);
+        //Visualizers.AnimateAsAscii(gridmapv2, pa, delayMs: 80);
 
         //ChunkVisualizer.PrintChunksWithGates(gridmap);
         stopwatch.Start();
-        for (int i = 0; i < 100; i++) {
-            var path = gridmap.GetGridPath(algo);
-            
+        FinalPath p = new();
+        for (int i = 0; i < 100; i++) { // 4897 ms
+            //Console.WriteLine($"i : {i}");
+            p = gridmap.GetGridPath(algo);
+            //FinalPath result = manager.Run();
+
         }
         stopwatch.Stop();
-        Console.WriteLine($"Time taken grid: {stopwatch.ElapsedMilliseconds} ms");
+        Console.WriteLine($"Time taken grid: {stopwatch.ElapsedMilliseconds} ms. Path length : {p.nodes.Count}");
+        var path = gridmap.GetGridPath(algo);
+
         //Visualizers.AnimateAsAscii(gridmap, path, delayMs: 80);
         //ConnectionVisualizer.PrintConnections(gridmap);
         // 4) Run solver through Manager
+        var pmap = new PMap(n, m);
+        pmap.MapFromStr(n, m, mapStr);
         var manager = new Manager(algo, pmap, gridmap);
-        stopwatch.Restart();
-        for (int i = 0; i < 100; i++) {
-            FinalPath result = manager.Run();
 
+        var nodes = pmap.ToNodes(pmap.cells);   // build the full graph once
+        var startNode = nodes[pmap.start];
+        var goalNode = nodes[pmap.goal];
+        stopwatch.Restart();
+        for (int i = 0; i < 100; i++) { // 31964 ms
+            p = algo.FindGoal(startNode, goalNode);
         }
 
         stopwatch.Stop();
-        Console.WriteLine($"Time taken simple: {stopwatch.ElapsedMilliseconds} ms");
+        Console.WriteLine($"Time taken simple: {stopwatch.ElapsedMilliseconds} ms. Path length : {p.nodes.Count}");
 
         //// 5) ASCII printer: print the chosen shortest path
         ////PrintPathAsAscii(pmap, result.path);

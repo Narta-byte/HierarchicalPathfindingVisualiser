@@ -289,11 +289,8 @@ namespace HPF.model {
 
             return this;
         }
-        internal GridMap InitComponents() {
-
-
-
-            return this;
+        internal new GridMap InitComponents() {
+            return (GridMap) base.InitComponents();
         }
 
 
