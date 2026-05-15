@@ -1,10 +1,11 @@
-﻿using System;
+﻿using HPF.model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using HPF.model;
+using static HPF.model.Gate;
 
 public static class ConnectionVisualizer {
-    public static void PrintConnections(GridMap gridMap) {
+    public static void PrintConnections(GridMapV2 gridMap) {
         int n = gridMap.N;
         int m = gridMap.M;
         int gridSize = gridMap.GridSize;

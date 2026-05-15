@@ -1,6 +1,8 @@
 ﻿using BenchmarkDotNet.Disassemblers;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO.IsolatedStorage;
 using static HPF.model.PMap;
 
 namespace HPF.model {
@@ -66,55 +68,59 @@ namespace HPF.model {
             return this;
         }
         public PMap InitComponents() {
+            // Build a union-find parent array
+            Dictionary<int, int> parent = new();
+
+            int Find(int x) {
+                if (!parent.ContainsKey(x)) parent[x] = x;
+                if (parent[x] != x) parent[x] = Find(parent[x]); // path compression
+                return parent[x];
+            }
+
+            void Union(int a, int b) {
+                int rootA = Find(a);
+                int rootB = Find(b);
+                if (rootA != rootB) {
+                    parent[rootB] = rootA; // merge
+                }
+            }
+
+            // First pass: union adjacent cells
             for (int row = 0; row < N; row++) {
                 for (int col = 0; col < M; col++) {
-                    if (row + 1 < N) {
-                        ref int current = ref components[row, col];
-                        ref int down = ref components[row + 1, col];
+                    int current = components[row, col];
+                    if (current == -1) continue;
 
-                        if (current != -1 && down != -1) {
-                            int min = Math.Min(current, down);
-                            current = min;
-                            down = min;
-                        }
-
-                    }
+                    // Check right neighbor
                     if (col + 1 < M) {
-                        ref int current = ref components[row, col];
-                        ref int right = ref components[row, col + 1];
-                        if (current != -1 && right != -1) {
-                            int min = Math.Min(current, right);
-                            current = min;
-                            right = min;
-                        }
+                        int right = components[row, col + 1];
+                        if (right != -1) Union(current, right);
                     }
-                    if (row - 1 > 0) {
-                        ref int current = ref components[row, col];
-                        ref int up = ref components[row - 1, col];
 
-                        if (current != -1 && up != -1) {
-                            int min = Math.Min(current, up);
-                            current = min;
-                            up = min;
-                        }
+                    // Check down neighbor
+                    if (row + 1 < N) {
+                        int down = components[row + 1, col];
+                        if (down != -1) Union(current, down);
                     }
-                    if (col - 1 > 0) {
-                        ref int current = ref components[row, col];
-                        ref int left = ref components[row, col - 1];
-                        if (current != -1 && left != -1) {
-                            int min = Math.Min(current, left);
-                            current = min;
-                            left = min;
-                        }
-                    }
-                    Console.Write(components[row,col]);
                 }
-                Console.WriteLine();
-
             }
-            var c = components;
-            return this;
+            
+            // Second pass: update all cells to their root component
+            for (int row = 0; row < N; row++) {
+                for (int col = 0; col < M; col++) {
+                    if (components[row, col] != -1) {
+                        components[row, col] = Find(components[row, col]);
+                    }
+                }
+            }
+            
+                return this;
         }
+        protected bool ConnectedNodes(Node n1, Node n2) 
+            => components[n1.Pos.Row, n1.Pos.Col] == components[n2.Pos.Row, n2.Pos.Col];
+        protected bool Connected((int row, int col) n1, (int row, int col) n2)
+            => components[n1.row, n1.col] == components[n2.row, n2.col];
+
         public Dictionary<Vector2, Node> ToNodes(Celltype[,] map) {
             int rows = map.GetLength(0);
             int cols = map.GetLength(1);

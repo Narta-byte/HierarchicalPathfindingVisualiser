@@ -30,6 +30,7 @@
 using BenchmarkDotNet.Disassemblers;
 using HPF.model;
 using System.Diagnostics;
+using static HPF.model.Gate;
 
 public static class Program
 {
@@ -115,14 +116,15 @@ public static class Program
                .InitConnections(algo);
 
 
-        //GridMapV2 gridmapv2 = new GridMapV2(n, m, gridSize: 4);
-        //gridmapv2.MapFromStr(n, m, mapStr);
-        //gridmapv2.SetIsUsingOneGatePerEdge(true)
-        //         .InitChunks()
-        //         .InitGatesV2()
-        //         .InitConnections(algo)
-        //         .ConnectStartGate(algo)
-        //         .ConnectGoalGate(algo);
+        GridMapV2 gridmapv2 = new GridMapV2(n, m, gridSize: 4);
+        gridmapv2.MapFromStr(n, m, mapStr);
+        gridmapv2.InitComponents();
+        gridmapv2.SetIsUsingOneGatePerEdge(true)
+                 .InitChunks()
+                 .InitGatesV2()
+                 .InitConnections()
+                 .ConnectStartGate()
+                 .ConnectGoalGate();
 
 
 
@@ -130,10 +132,10 @@ public static class Program
         //ConnectionVisualizer.PrintConnections(gridmapv2);
 
 
-        //var pa = gridmapv2.GetGridPath(algo);
+        var pa = gridmapv2.GetGridPath(algo);
 
-        ////PrintPathAsAscii(gridmap, pa.path);
-        //Visualizers.AnimateAsAscii(gridmapv2, pa, delayMs: 80);
+        //PrintPathAsAscii(gridmap, pa.path);
+        Visualizers.AnimateAsAscii(gridmapv2, pa, delayMs: 80);
 
         //ChunkVisualizer.PrintChunksWithGates(gridmap);
         stopwatch.Start();
