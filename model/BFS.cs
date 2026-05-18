@@ -2,7 +2,7 @@
 
 namespace HPF.model {
     public class BFS : IAlgo {
-        public FinalPath FindGoal(Node start, Node goal) {
+        public FinalPath FindGoal(Node start, Node goal, Func<Node, bool> isValidNode = null) {
             var result = new FinalPath();
 
             var queue = new Queue<Node>();
@@ -39,10 +39,16 @@ namespace HPF.model {
                 foreach (var next in current.Connections) {
                     if (visited.Contains(next))
                         continue;
-
-                    visited.Add(next);
-                    parent[next] = current;
-                    queue.Enqueue(next);
+                    if (isValidNode == null || isValidNode(next))
+                        {
+                        //var a = 1;
+                        //if (isValidNode != null){
+                        //    var b = isValidNode(next);
+                        //}
+                        visited.Add(next);
+                        parent[next] = current;
+                        queue.Enqueue(next);
+                    }
                 }
             }
 

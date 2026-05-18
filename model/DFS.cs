@@ -5,7 +5,7 @@ namespace HPF.model {
         //public FinalPath FindGoal(Celltype[,] map, Vector2 start, Vector2 goal) {
         //    throw new NotImplementedException();
         //}
-        public FinalPath FindGoal(Node start, Node goal) {
+        public FinalPath FindGoal(Node start, Node goal, Func<Node, bool> isValidNode = null) {
             var result = new FinalPath();
 
             var stack = new Stack<Node>();
@@ -42,7 +42,8 @@ namespace HPF.model {
                 foreach (var next in current.Connections) {
                     if (visited.Contains(next))
                         continue;
-
+                    if (isValidNode == null || isValidNode(next))
+                        continue;
                     visited.Add(next);
                     parent[next] = current;
                     stack.Push(next);

@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 
 namespace HPF.model {
     //public record Gate(Node Node, List<Gate> Connections);
-    public record Gate(Node Node, List<Gate> Connections);
+    public record Gate(Node MapNode, Node GateNode);
     public class ChunkV2(Vector2 corner1, Vector2 corner2) {
         public Vector2 Corner1 { get; init; } = corner1;
         public Vector2 Corner2 { get; init; } = corner2;
@@ -129,11 +129,15 @@ namespace HPF.model {
                                 Gate bottomGate = GetOrCreateGate(chunk, bottomRow);
                                 Gate topGate = GetOrCreateGate(down, topRow);
 
-                                if (!bottomGate.Connections.Contains(topGate))
-                                    bottomGate.Connections.Add(topGate);
+                                if (!bottomGate.GateNode.Connections.Contains(topGate.GateNode)){
+                                    bottomGate.GateNode.Connections.Add(topGate.GateNode);
+                                    bottomGate.MapNode.Connections.Add(topGate.MapNode);
+                                }
 
-                                if (!topGate.Connections.Contains(bottomGate))
-                                    topGate.Connections.Add(bottomGate);
+                                if (!topGate.GateNode.Connections.Contains(bottomGate.GateNode)){
+                                    topGate.GateNode.Connections.Add(bottomGate.GateNode);
+                                    topGate.MapNode.Connections.Add(bottomGate.MapNode);
+                                }
 
                                 if (isUsingOneGatePerEdge)
                                     break;
@@ -155,11 +159,14 @@ namespace HPF.model {
                                 Gate rightGate = GetOrCreateGate(chunk, rightEdge);
                                 Gate leftGate = GetOrCreateGate(right, leftEdge);
 
-                                if (!rightGate.Connections.Contains(leftGate))
-                                    rightGate.Connections.Add(leftGate);
+                                if (!rightGate.GateNode.Connections.Contains(leftGate.GateNode)){
+                                    rightGate.GateNode.Connections.Add(leftGate.GateNode);
+                                    rightGate.MapNode.Connections.Add(leftGate.MapNode);
+                                }
 
-                                if (!leftGate.Connections.Contains(rightGate))
-                                    leftGate.Connections.Add(rightGate);
+                                if (!leftGate.GateNode.Connections.Contains(rightGate.GateNode)){
+                                    leftGate.MapNode.Connections.Add(rightGate.MapNode);
+                                }
 
                                 if (isUsingOneGatePerEdge)
                                     break;
@@ -173,11 +180,11 @@ namespace HPF.model {
         }
 
         private Gate GetOrCreateGate(ChunkV2 chunk, Node node) {
-            var existing = chunk.Gates.FirstOrDefault(g => g.Node.Pos == node.Pos);
+            var existing = chunk.Gates.FirstOrDefault(g => g.MapNode.Pos == node.Pos);
             if (existing != null)
                 return existing;
 
-            var gate = new Gate(node, new List<Gate>());
+            var gate = new Gate(node, new Node(node.Pos, []));
             chunk.Gates.Add(gate);
             return gate;
         }
@@ -190,7 +197,7 @@ namespace HPF.model {
                 for (int j = 0; j < ChunksV2.GetLength(1); j++) {
                     foreach (var gate in ChunksV2[i, j].Gates)
                         if (seen.Add(gate))
-                            yield return gate.Node;
+                            yield return gate.MapNode;
                 }
             }
         }
@@ -213,23 +220,27 @@ namespace HPF.model {
                         //var localRow = startGate.Pos.Row - ChunkV2.Corner1.Row;
                         //var localCol = startGate.Pos.Col - ChunkV2.Corner1.Col;
                         //var startNode = nodes[localRow, localCol];
-                        Node startNode = startGate.Node;
+                        Node startNode = startGate.MapNode;
                         for (int v = u + 1; v < gates.Count; v++) {
                             Gate goalGate = gates[v];
                             //var localGoalRow = goalGate.Pos.Row - ChunkV2.Corner1.Row;
                             //var localGoalCol = goalGate.Pos.Col - ChunkV2.Corner1.Col;
                             //var goalNode = nodes[localGoalRow, localGoalCol];
-                            var goalNode = goalGate.Node;
+                            var goalNode = goalGate.MapNode;
 
                             //FinalPath res = algo.FindGoal(startNode, goalNode); // this can be replaced later by using connected components
                             bool isConnected = ConnectedNodes(startNode, goalNode);
 
                             if (isConnected) {
-                                if (!gates[u].Connections.Contains(gates[v]))
-                                    gates[u].Connections.Add(gates[v]);
+                                if (!gates[u].GateNode.Connections.Contains(gates[v].GateNode)){
+                                    gates[u].GateNode.Connections.Add(gates[v].GateNode);
+                                    //gates[u].MapNode.Connections.Add(gates[v].MapNode);
+                                }
 
-                                if (!gates[v].Connections.Contains(gates[u]))
-                                    gates[v].Connections.Add(gates[u]);
+                                if (!gates[v].GateNode.Connections.Contains(gates[u].GateNode)){
+                                    gates[v].GateNode.Connections.Add(gates[u].GateNode);
+                                    //gates[v].MapNode.Connections.Add(gates[u].MapNode);
+                                }
                             }
                         }
                     }
@@ -382,16 +393,16 @@ namespace HPF.model {
             if (node == null) {
                 throw new Exception();
             }
-            var newGate = new Gate(node, []);
-            //chunk.Gates.Add(newNode);
+            var newGate = new Gate(node, new Node(node.Pos, []));
+            chunk.Gates.Add(newGate);
 
             foreach (Gate gate in gates) {
                 if (gate.Equals(newGate))
                     continue;
-                bool isConnected = ConnectedNodes(newGate.Node, gate.Node); // there needs to be a chunk level connected component system, otherwise if there is a wall that disconnects
+                bool isConnected = ConnectedNodes(newGate.MapNode, gate.MapNode); // there needs to be a chunk level connected component system, otherwise if there is a wall that disconnects
                 if (isConnected) {
-                    newGate.Connections.Add(gate);
-                    gate.Connections.Add(newGate);
+                    newGate.GateNode.Connections.Add(gate.GateNode);
+                    gate.GateNode.Connections.Add(newGate.GateNode);
                 }
             }
         }
@@ -402,13 +413,13 @@ namespace HPF.model {
             ChunkV2 startChunkV2 = GetChunkV2(start);
             ChunkV2 goalChunkV2 = GetChunkV2(goal);
 
-            var startGate = startChunkV2.Gates.Find(gate => gate.Node.Pos == start);
-            var goalGate = startChunkV2.Gates.Find(gate => gate.Node.Pos == goal);
+            var startGate = startChunkV2.Gates.Find(gate => gate.MapNode.Pos == start);
+            var goalGate = goalChunkV2.Gates.Find(gate => gate.MapNode.Pos == goal);
 
-            (Node startNode, Node goalNode) = GatesToNode(startGate, goalGate);
+            //(Node startNode, Node goalNode) = GatesToNode(startGate.GateNode, goalGate.GateNode);
 
 
-            FinalPath ChunkV2Path = algo.FindGoal(startNode, goalNode); // there needs to be some function that converts the gates graph to a node graph
+            FinalPath ChunkV2Path = algo.FindGoal(startGate.GateNode, goalGate.GateNode); // there needs to be some function that converts the gates graph to a node graph
                                                                         //FinalPath ChunkV2Path = new();
             var ChunkV2Set = new HashSet<ChunkV2>();
 
@@ -432,13 +443,12 @@ namespace HPF.model {
             //}
             //var restrictedMap = BuildRestrictedMap(ChunkV2Set);
 
-            //return algo.FindGoal(restrictedMap[start], restrictedMap[goal]);
-            return ChunkV2Path; // temp
+            return algo.FindGoal(startGate.MapNode, goalGate.MapNode, (Node n) => ChunkV2Set.Contains(GetChunkV2(n.Pos)));
+            //return ChunkV2Path; // temp
         }
 
-        private (Node startNode, Node goalNode) GatesToNode(Gate startGate, Gate goalGate) {
-            throw new NotImplementedException();
-        }
+      
+
 
         //private Dictionary<Vector2, Node> BuildRestrictedMap(HashSet<ChunkV2> ChunkV2Set) {
         //    List<(Dictionary<Vector2, Node> NodeMap, List<Node> Gates)> disconnectedNodeMaps = [];
