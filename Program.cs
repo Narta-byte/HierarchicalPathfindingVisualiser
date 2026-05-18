@@ -38,6 +38,7 @@ public static class Program
     {
         // 1) 
         IAlgo algo = new BFS();
+        IAlgo aStar = new AStar();
 
         // 2) Create a map (S=start, G=goal, #=wall, .=empty)
         //    NOTE: MapFromStr expects ALL rows concatenated into one string.
@@ -79,6 +80,15 @@ public static class Program
         //   "...#.#.#....#..G" +
         //   "...#.#.#....#..." +
         //   ".......#........";
+        //string mapStr =
+        //   ".S.#........#..." +
+        //   "...#...#....#..." +
+        //   "##.###.#....#..." +
+        //   ".....#.#....####" +
+        //   "...#.#.#....#..." +
+        //   "...#.#.#....#..G" +
+        //   "...#.#.#....#..." +
+        //   ".......#........";
         Stopwatch stopwatch = new Stopwatch();
 
         //int n = 16, m = 32;
@@ -100,7 +110,7 @@ public static class Program
         //   "...#........#......#........#..." +
         //   "...#........#......#........#..." +
         //   "...#...........................G";
-        int n = 2048*2, m = 2048*2;
+        int n = 2048 * 2, m = 2048 * 2;
         string mapStr = LabyrinthGenerator.Generate(n, m, wallChance: 0.10);
 
         //LabyrinthGenerator.PrintAsRows(mapStr,n,m);
@@ -162,7 +172,16 @@ public static class Program
         }
         stopwatch.Stop();
         Console.WriteLine($"Time taken gridv2: {stopwatch.ElapsedMilliseconds} ms. Path length : {p.nodes.Count}");
+        stopwatch.Restart();
+        p = new();
+        for (int i = 0; i < 3; i++) {
+            //Console.WriteLine($"i : {i}");
+            p = gridmapv2.GetGridPath(aStar);
+            //FinalPath result = manager.Run();
 
+        }
+        stopwatch.Stop();
+        Console.WriteLine($"Time taken gridv2 with Astar: {stopwatch.ElapsedMilliseconds} ms. Path length : {p.nodes.Count}");
 
         //Visualizers.AnimateAsAscii(gridmap, path, delayMs: 80);
         //ConnectionVisualizer.PrintConnections(gridmap);
@@ -180,7 +199,13 @@ public static class Program
 
         stopwatch.Stop();
         Console.WriteLine($"Time taken simple: {stopwatch.ElapsedMilliseconds} ms. Path length : {p.nodes.Count}");
+        stopwatch.Restart();
+        for (int i = 0; i < 3; i++) {
+            p = aStar.FindGoal(startNode, goalNode);
+        }
 
+        stopwatch.Stop();
+        Console.WriteLine($"Time taken simple Astar: {stopwatch.ElapsedMilliseconds} ms. Path length : {p.nodes.Count}");
         //// 5) ASCII printer: print the chosen shortest path
         ////PrintPathAsAscii(pmap, result.path);
         //
