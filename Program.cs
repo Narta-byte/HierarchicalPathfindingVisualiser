@@ -51,16 +51,16 @@ public static class Program
         //    ".#...#...G" +
         //    ".....#....";
 
-        int n = 8, m = 16;
-        string mapStr =
-            "S..#........#..." +
-            "...#........#..." +
-            "...#........#..." +
-            "...#........####" +
-            "...#............" +
-            "...#...........G" +
-            "................" +
-            "...#............";
+        //int n = 8, m = 16;
+        //string mapStr =
+        //    "S..#........#..." +
+        //    "...#........#..." +
+        //    "...#........#..." +
+        //    "...#........####" +
+        //    "...#............" +
+        //    "...#...........G" +
+        //    "................" +
+        //    "...#............";
         //string mapStr =
         //   "............#..." +
         //   "...#...#....#..." +
@@ -83,38 +83,39 @@ public static class Program
 
         //int n = 16, m = 32;
 
-        ////string mapStr =
-        ////   ".S.#...#....#......#........#..." +
-        ////   "...#.#.#....#......#........#..." +
-        ////   "...#.#.#....#......#........#..." +
-        ////   ".....#.#....#......#........#..." +
-        ////   "...###.#....#......#........#..." +
-        ////   "...#........#......#........#..." +
-        ////   "...#........#......#........#..." +
-        ////   "...#........#......#........#..." +
-        ////   "...#........#......#........#..." +
-        ////   "...#........#......#........#..." +
-        ////   "...#........#......#........#..." +
-        ////   "...#........#......#........#..." +
-        ////   "...#........#......#........#..." +
-        ////   "...#........#......#........#..." +
-        ////   "...#........#......#........#..." +
-        ////   "...#...........................G";
-        //int n = 256, m = 256;
-        //string mapStr = LabyrinthGenerator.Generate(n, m, wallChance: 0.10);
+        //string mapStr =
+        //   ".S.#...#....#......#........#..." +
+        //   "...#.#.#....#......#........#..." +
+        //   "...#.#.#....#......#........#..." +
+        //   ".....#.#....#......#........#..." +
+        //   "...###.#....#......#........#..." +
+        //   "...#........#......#........#..." +
+        //   "...#........#......#........#..." +
+        //   "...#........#......#........#..." +
+        //   "...#........#......#........#..." +
+        //   "...#........#......#........#..." +
+        //   "...#........#......#........#..." +
+        //   "...#........#......#........#..." +
+        //   "...#........#......#........#..." +
+        //   "...#........#......#........#..." +
+        //   "...#........#......#........#..." +
+        //   "...#...........................G";
+        int n = 2048*2, m = 2048*2;
+        string mapStr = LabyrinthGenerator.Generate(n, m, wallChance: 0.10);
 
         //LabyrinthGenerator.PrintAsRows(mapStr,n,m);
 
         // 3) If you have a GridMap type, create it (stubbed here)
         //    If your GridMap constructor differs, adjust accordingly.
-        GridMap gridmap = new GridMap(n, m, gridSize: 8);
-        gridmap.MapFromStr(n, m, mapStr);
-        gridmap.SetIsUsingOneGatePerEdge(true)
-               .InitComponents()
-               .InitChunks()
-               .InitGates()
-               .InitConnections(algo);
+        GridMap gridmap = new GridMap(n, m, gridSize: 4);
+        //gridmap.MapFromStr(n, m, mapStr);
+        //gridmap.SetIsUsingOneGatePerEdge(true)
+        //       .InitComponents()
+        //       .InitChunks()
+        //       .InitGates()
+        //       .InitConnections(algo);
 
+        stopwatch.Start();
 
         GridMapV2 gridmapv2 = new GridMapV2(n, m, gridSize: 4);
         gridmapv2.MapFromStr(n, m, mapStr);
@@ -126,6 +127,8 @@ public static class Program
                  .ConnectStartGate()
                  .ConnectGoalGate();
 
+        stopwatch.Stop();
+        Console.WriteLine($"Precomputing Time : {stopwatch.ElapsedMilliseconds} ms");
 
 
         //ChunkVisualizer.PrintChunksWithGates(gridmapv2);
@@ -135,24 +138,34 @@ public static class Program
         var pa = gridmapv2.GetGridPath(algo);
 
         //PrintPathAsAscii(gridmap, pa.path);
-        Visualizers.AnimateAsAscii(gridmapv2, pa, delayMs: 80);
+        //Visualizers.AnimateAsAscii(gridmapv2, pa, delayMs: 80);
 
-        //ChunkVisualizer.PrintChunksWithGates(gridmap);
-        stopwatch.Start();
+        //ChunkVisualizer.PrintChunksWithGates(gridmapv2);
+        stopwatch.Restart();
         FinalPath p = new();
-        for (int i = 0; i < 100; i++) { // 4897 ms
+        //for (int i = 0; i < 1; i++) { 
+        //    //Console.WriteLine($"i : {i}");
+        //    p = gridmap.GetGridPath(algo);
+        //    //FinalPath result = manager.Run();
+
+        //}
+        stopwatch.Stop();
+        Console.WriteLine($"Time taken gridv1: {stopwatch.ElapsedMilliseconds} ms. Path length : {p.nodes.Count}");
+
+        stopwatch.Restart();
+        p = new();
+        for (int i = 0; i < 3; i++) {
             //Console.WriteLine($"i : {i}");
-            p = gridmap.GetGridPath(algo);
+            p = gridmapv2.GetGridPath(algo);
             //FinalPath result = manager.Run();
 
         }
         stopwatch.Stop();
-        Console.WriteLine($"Time taken grid: {stopwatch.ElapsedMilliseconds} ms. Path length : {p.nodes.Count}");
-        var path = gridmap.GetGridPath(algo);
+        Console.WriteLine($"Time taken gridv2: {stopwatch.ElapsedMilliseconds} ms. Path length : {p.nodes.Count}");
+
 
         //Visualizers.AnimateAsAscii(gridmap, path, delayMs: 80);
         //ConnectionVisualizer.PrintConnections(gridmap);
-        // 4) Run solver through Manager
         var pmap = new PMap(n, m);
         pmap.MapFromStr(n, m, mapStr);
         var manager = new Manager(algo, pmap, gridmap);
@@ -161,7 +174,7 @@ public static class Program
         var startNode = nodes[pmap.start];
         var goalNode = nodes[pmap.goal];
         stopwatch.Restart();
-        for (int i = 0; i < 100; i++) { // 31964 ms
+        for (int i = 0; i < 3; i++) { 
             p = algo.FindGoal(startNode, goalNode);
         }
 

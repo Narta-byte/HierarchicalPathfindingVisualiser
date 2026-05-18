@@ -68,6 +68,11 @@ namespace HPF.model {
             return this;
         }
         public PMap InitComponents() {
+            CreateComponents(components);
+            return this;
+        }
+
+        protected int[,] CreateComponents(int[,] domain) {
             // Build a union-find parent array
             Dictionary<int, int> parent = new();
 
@@ -86,36 +91,41 @@ namespace HPF.model {
             }
 
             // First pass: union adjacent cells
-            for (int row = 0; row < N; row++) {
-                for (int col = 0; col < M; col++) {
-                    int current = components[row, col];
+            int dim0 = domain.GetLength(0);
+            int dim1 = domain.GetLength(1);
+            for (int row = 0; row < dim0; row++) {
+                for (int col = 0; col < dim1; col++) {
+                    int current = domain[row, col];
                     if (current == -1) continue;
 
                     // Check right neighbor
-                    if (col + 1 < M) {
-                        int right = components[row, col + 1];
+                    if (col + 1 < dim1) {
+                        int right = domain[row, col + 1];
                         if (right != -1) Union(current, right);
                     }
 
                     // Check down neighbor
-                    if (row + 1 < N) {
-                        int down = components[row + 1, col];
+                    if (row + 1 < dim0) {
+                        int down = domain[row + 1, col];
                         if (down != -1) Union(current, down);
                     }
                 }
             }
             
             // Second pass: update all cells to their root component
-            for (int row = 0; row < N; row++) {
-                for (int col = 0; col < M; col++) {
-                    if (components[row, col] != -1) {
-                        components[row, col] = Find(components[row, col]);
+            for (int row = 0; row < dim0; row++) {
+                for (int col = 0; col < dim1; col++) {
+                    if (domain[row, col] != -1) {
+                        domain[row, col] = Find(domain[row, col]);
                     }
                 }
             }
             
-                return this;
+                return domain;
         }
+        
+
+
         protected bool ConnectedNodes(Node n1, Node n2) 
             => components[n1.Pos.Row, n1.Pos.Col] == components[n2.Pos.Row, n2.Pos.Col];
         protected bool Connected((int row, int col) n1, (int row, int col) n2)
