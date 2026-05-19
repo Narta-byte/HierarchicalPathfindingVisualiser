@@ -5,7 +5,7 @@ namespace HPF.model {
         //public FinalPath FindGoal(Celltype[,] map, Vector2 start, Vector2 goal) {
         //    throw new NotImplementedException();
         //}
-        public FinalPath FindGoal(Node start, Node goal, Func<Node, bool> isValidNode = null) {
+        public FinalPath FindGoal(Node start, Node goal, Func<Node, bool>? isValidNode = null) {
             var result = new FinalPath();
 
             var stack = new Stack<Node>();

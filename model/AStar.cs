@@ -2,7 +2,7 @@
 
 namespace HPF.model {
     public class AStar : IAlgo {
-        public FinalPath FindGoal(Node start, Node goal, Func<Node, bool> isValidNode = null) {
+        public FinalPath FindGoal(Node start, Node goal, Func<Node, bool>? isValidNode = null) {
             var result = new FinalPath();
 
             var openSet = new PriorityQueue<Node, float>();

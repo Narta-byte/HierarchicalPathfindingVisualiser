@@ -5,7 +5,7 @@ using System.Linq;
 using static HPF.model.Gate;
 
 public static class ConnectionVisualizer {
-    public static void PrintConnections(GridMapV2 gridMap) {
+    public static void PrintConnections(GridMap gridMap) {
         int n = gridMap.N;
         int m = gridMap.M;
         int gridSize = gridMap.GridSize;

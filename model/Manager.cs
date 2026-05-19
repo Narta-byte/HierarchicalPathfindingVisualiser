@@ -6,13 +6,11 @@ public class Manager
 {
     IAlgo selectedAlgo;
     PMap map;
-    GridMap gridmap;
 
-    public Manager(IAlgo algo, PMap map, GridMap gridmap)
+    public Manager(IAlgo algo, PMap map)
     {
         this.selectedAlgo = algo;
         this.map = map;
-        this.gridmap = gridmap;
     }
 
     public FinalPath Run() {

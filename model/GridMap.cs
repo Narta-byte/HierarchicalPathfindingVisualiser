@@ -1,12 +1,26 @@
 ﻿
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography;
 
 namespace HPF.model {
-    public record Chunk(Vector2 Corner1, Vector2 Corner2, List<Node> Gates);
-    public enum Direction { Up, Down, Left, Right }
+    //public record Gate(Node Node, List<Gate> Connections);
+    public record Gate(Node MapNode, Node GateNode);
+    public class Chunk(Vector2 corner1, Vector2 corner2) {
+        public Vector2 Corner1 { get; init; } = corner1;
+        public Vector2 Corner2 { get; init; } = corner2;
+        public List<Gate> Gates { get; init; } = new();
+        public Node?[,] Nodes { get; init; } = new Node[corner2.Row - corner1.Row, corner2.Col - corner1.Col];
+
+        //public Dictionary<Vector2, Node> NodesByPos { get; init; } = new();
+
+        public bool Contains(Vector2 pos) =>
+            pos.Row >= Corner1.Row && pos.Row < Corner2.Row &&
+            pos.Col >= Corner1.Col && pos.Col < Corner2.Col;
+    }
+
 
     public class GridMap : PMap {
         public bool isUsingOneGatePerEdge = false;
@@ -18,22 +32,21 @@ namespace HPF.model {
 
         public int GridSize => gridSize;
 
-        Chunk[,] chunks = new Chunk[0, 0];
-
+        Chunk[,] ChunksV2 = new Chunk[0, 0];
         public GridMap(int n, int m, int gridSize) : base(n, m) {
             this.gridSize = gridSize;
 
-            int chunkRows = (N + this.gridSize - 1) / this.gridSize;
-            int chunkCols = (M + this.gridSize - 1) / this.gridSize;
+            int ChunkV2Rows = (N + this.gridSize - 1) / this.gridSize;
+            int ChunkV2Cols = (M + this.gridSize - 1) / this.gridSize;
 
-            chunks = new Chunk[chunkRows, chunkCols];
+            ChunksV2 = new Chunk[ChunkV2Rows, ChunkV2Cols];
         }
 
         public GridMap InitChunks() {
             int chunkRows = (N + gridSize - 1) / gridSize;
             int chunkCols = (M + gridSize - 1) / gridSize;
 
-            chunks = new Chunk[chunkRows, chunkCols];
+            ChunksV2 = new Chunk[chunkRows, chunkCols];
 
             for (int cr = 0; cr < chunkRows; cr++) {
                 for (int cc = 0; cc < chunkCols; cc++) {
@@ -43,480 +56,301 @@ namespace HPF.model {
                     int r2 = Math.Min(r1 + gridSize, N);
                     int c2 = Math.Min(c1 + gridSize, M);
 
-                    chunks[cr, cc] = new Chunk(
+                    int rowCount = r2 - r1;
+                    int colCount = c2 - c1;
+
+                    var chunk = new Chunk(
                         new Vector2(Row: r1, Col: c1),
-                        new Vector2(Row: r2, Col: c2),
-                        new List<Node>()
+                        new Vector2(Row: r2, Col: c2)
                     );
+
+                    // initialize nodes
+                    for (int i = r1; i < r2; i++) {
+                        for (int j = c1; j < c2; j++) {
+                            chunk.Nodes[i - r1, j - c1] =
+                                cells[i, j] == Celltype.Wall
+                                    ? null
+                                    : new Node(new Vector2(i, j), new List<Node>());
+                        }
+                    }
+
+                    // connect nodes
+                    for (int i = 0; i < rowCount; i++) {
+                        for (int j = 0; j < colCount; j++) {
+                            Node? n = chunk.Nodes[i, j];
+                            if (n == null) continue;
+
+                            // down
+                            if (j < colCount - 1) {
+                                Node? down = chunk.Nodes[i, j + 1];
+                                if (down != null) {
+                                    n.Connections.Add(down);
+                                    down.Connections.Add(n);
+                                }
+                            }
+                            // right
+                            if (i < rowCount - 1) {
+                                Node? right = chunk.Nodes[i + 1, j];
+                                if (right != null) {
+                                    n.Connections.Add(right);
+                                    right.Connections.Add(n);
+                                }
+                            }
+                        }
+                    }
+
+                    ChunksV2[cr, cc] = chunk;
                 }
             }
             return this;
         }
 
-        public GridMap InitGates() {
-            List<(int, int)> directions = new List<(int, int)> { (0, 1), (1, 0) };
-            for (int i = 0; i < chunks.GetLength(0); i++) {
-                for (int j = 0; j < chunks.GetLength(1); j++) {
-                    Chunk curChunk = chunks[i, j];
-                    foreach ((int, int) dir in directions) {
-                        int rowdir = i + dir.Item1;
-                        int coldir = j + dir.Item2;
-                        if (rowdir < 0 || rowdir >= chunks.GetLength(0) || coldir < 0 || coldir >= chunks.GetLength(1))
-                            continue;
+        public GridMap InitGatesV2() {
+            int chunkRows = ChunksV2.GetLength(0);
+            int chunkCols = ChunksV2.GetLength(1);
+
+            for (int r = 0; r < chunkRows; r++) {
+                for (int c = 0; c < chunkCols; c++) {
+                    Chunk chunk = ChunksV2[r, c];
+                    int rowCount = chunk.Nodes.GetLength(0);
+                    int colCount = chunk.Nodes.GetLength(1);
+
+                    // Connect chunk below
+                    if (r + 1 < chunkRows) {
+                        Chunk down = ChunksV2[r + 1, c];
+                        int downColCount = down.Nodes.GetLength(1);
+                        int limit = Math.Min(colCount, downColCount);
+
+                        for (int col = 0; col < limit; col++) {
+                            var bottomRow = chunk.Nodes[rowCount - 1, col];
+                            var topRow = down.Nodes[0, col];
+
+                            if (bottomRow != null && topRow != null) {
+                                Gate bottomGate = GetOrCreateGate(chunk, bottomRow);
+                                Gate topGate = GetOrCreateGate(down, topRow);
+
+                                if (!bottomGate.GateNode.Connections.Contains(topGate.GateNode)){
+                                    bottomGate.GateNode.Connections.Add(topGate.GateNode);
+                                    bottomGate.MapNode.Connections.Add(topGate.MapNode);
+                                }
+
+                                if (!topGate.GateNode.Connections.Contains(bottomGate.GateNode)){
+                                    topGate.GateNode.Connections.Add(bottomGate.GateNode);
+                                    topGate.MapNode.Connections.Add(bottomGate.MapNode);
+                                }
+
+                                if (isUsingOneGatePerEdge)
+                                    break;
+                            }
+                        }
+                    }
+
+                    // Connect chunk to the right
+                    if (c + 1 < chunkCols) {
+                        Chunk right = ChunksV2[r, c + 1];
+                        int rightRowCount = right.Nodes.GetLength(0);
+                        int limit = Math.Min(rowCount, rightRowCount);
+
+                        for (int row = 0; row < limit; row++) {
+                            var rightEdge = chunk.Nodes[row, colCount - 1];
+                            var leftEdge = right.Nodes[row, 0];
+
+                            if (rightEdge != null && leftEdge != null) {
+                                Gate rightGate = GetOrCreateGate(chunk, rightEdge);
+                                Gate leftGate = GetOrCreateGate(right, leftEdge);
+
+                                if (!rightGate.GateNode.Connections.Contains(leftGate.GateNode)){
+                                    rightGate.GateNode.Connections.Add(leftGate.GateNode);
+                                    rightGate.MapNode.Connections.Add(leftGate.MapNode);
+                                }
+
+                                if (!leftGate.GateNode.Connections.Contains(rightGate.GateNode)) {
+                                    leftGate.GateNode.Connections.Add(rightGate.GateNode);
+                                    leftGate.MapNode.Connections.Add(rightGate.MapNode); 
+                                }
 
 
-                        FindGates(curChunk, chunks[rowdir, coldir], dir);
+                                if (isUsingOneGatePerEdge)
+                                    break;
+                            }
+                        }
                     }
                 }
             }
+            var a = ChunksV2;
             return this;
-
         }
 
-        private void FindGates(Chunk curChunk, Chunk chunk, (int, int) dir) {
-            switch (GetDirection(dir)) {
-                case Direction.Left: {
-                        (Celltype[] leftcells, Vector2 leftstart, Vector2 leftend) = GetLeftEdge(curChunk);
-                        (Celltype[] rightcells, Vector2 rightstart, Vector2 rightend) = GetRightEdge(chunk);
+        private Gate GetOrCreateGate(Chunk chunk, Node node) {
+            var existing = chunk.Gates.FirstOrDefault(g => g.MapNode.Pos == node.Pos);
+            if (existing != null)
+                return existing;
 
-                        var minLen = Math.Min(leftcells.Length, rightcells.Length);
-                        for (int i = 0; i < minLen; i++) {
-                            if (leftcells[i] == Celltype.Wall || rightcells[i] == Celltype.Wall)
-                                continue;
-
-                            Node curChunkGate = new(new Vector2(leftstart.Row + i, leftstart.Col), Connections: []);
-                            Node chunkGate = new(new Vector2(rightstart.Row + i, rightstart.Col), Connections: []);
-
-                            curChunkGate.Connections.Add(chunkGate);
-                            chunkGate.Connections.Add(curChunkGate);
-
-                            curChunk.Gates.Add(curChunkGate);
-                            chunk.Gates.Add(chunkGate);
-                            if (isUsingOneGatePerEdge) break;
-                        }
-
-                        break;
-                    }
-
-                case Direction.Right: {
-                        (Celltype[] rightcells, Vector2 rightstart, Vector2 rightend) = GetRightEdge(curChunk);
-                        (Celltype[] leftcells, Vector2 leftstart, Vector2 leftend) = GetLeftEdge(chunk);
-
-                        var minLen = Math.Min(rightcells.Length, leftcells.Length);
-                        for (int i = 0; i < minLen; i++) {
-                            if (rightcells[i] == Celltype.Wall || leftcells[i] == Celltype.Wall)
-                                continue;
-
-                            Node curChunkGate = new(new Vector2(rightstart.Row + i, rightstart.Col), Connections: []);
-                            Node chunkGate = new(new Vector2(leftstart.Row + i, leftstart.Col), Connections: []);
-
-                            curChunkGate.Connections.Add(chunkGate);
-                            chunkGate.Connections.Add(curChunkGate);
-
-                            curChunk.Gates.Add(curChunkGate);
-                            chunk.Gates.Add(chunkGate);
-                            if (isUsingOneGatePerEdge) break;
-
-                        }
-
-                        break;
-                    }
-
-                case Direction.Up: {
-                        (Celltype[] upcells, Vector2 upstart, Vector2 upend) = GetUpEdge(curChunk);
-                        (Celltype[] downcells, Vector2 downstart, Vector2 downend) = GetDownEdge(chunk);
-
-                        var minLen = Math.Min(upcells.Length, downcells.Length);
-                        for (int i = 0; i < minLen; i++) {
-                            if (upcells[i] == Celltype.Wall || downcells[i] == Celltype.Wall)
-                                continue;
-
-                            Node curChunkGate = new(new Vector2(upstart.Row, upstart.Col + i), Connections: []);
-                            Node chunkGate = new(new Vector2(downstart.Row, downstart.Col + i), Connections: []);
-
-                            curChunkGate.Connections.Add(chunkGate);
-                            chunkGate.Connections.Add(curChunkGate);
-
-                            curChunk.Gates.Add(curChunkGate);
-                            chunk.Gates.Add(chunkGate);
-                            if (isUsingOneGatePerEdge) break;
-
-                        }
-
-                        break;
-                    }
-
-                case Direction.Down: {
-                        (Celltype[] downcells, Vector2 downstart, Vector2 downend) = GetDownEdge(curChunk);
-                        (Celltype[] upcells, Vector2 upstart, Vector2 upend) = GetUpEdge(chunk);
-
-                        var minLen = Math.Min(downcells.Length, upcells.Length);
-                        for (int i = 0; i < minLen; i++) {
-                            if (downcells[i] == Celltype.Wall || upcells[i] == Celltype.Wall)
-                                continue;
-
-                            Node curChunkGate = new(new Vector2(downstart.Row, downstart.Col + i), Connections: []);
-                            Node chunkGate = new(new Vector2(upstart.Row, upstart.Col + i), Connections: []);
-
-                            curChunkGate.Connections.Add(chunkGate);
-                            chunkGate.Connections.Add(curChunkGate);
-
-                            curChunk.Gates.Add(curChunkGate);
-                            chunk.Gates.Add(chunkGate);
-                            if (isUsingOneGatePerEdge) break;
-
-                        }
-
-                        break;
-                    }
-            }
+            var gate = new Gate(node, new Node(node.Pos, []));
+            chunk.Gates.Add(gate);
+            return gate;
         }
 
-        private (Celltype[], Vector2, Vector2) GetLeftEdge(Chunk curChunk) {
-            int rowStart = curChunk.Corner1.Row;
-            int rowCount = curChunk.Corner2.Row - curChunk.Corner1.Row;
-            int col = curChunk.Corner1.Col;
+        public Chunk GetChunkV2(Vector2 coord) => ChunksV2[coord.Row / gridSize, coord.Col / gridSize];
+        protected bool ConnectedRestricted(int[,] domain, Chunk chunk, Node n1, Node n2) {
+            int r1 = n1.Pos.Row - chunk.Corner1.Row;
+            int c1 = n1.Pos.Col - chunk.Corner1.Col;
+            int r2 = n2.Pos.Row - chunk.Corner1.Row;
+            int c2 = n2.Pos.Col - chunk.Corner1.Col;
 
-            var edgeCells = Enumerable.Range(rowStart, rowCount)
-                .Select(r => cells[r, col])
-                .ToArray();
+            if (r1 < 0 || c1 < 0 || r1 >= domain.GetLength(0) || c1 >= domain.GetLength(1)) return false;
+            if (r2 < 0 || c2 < 0 || r2 >= domain.GetLength(0) || c2 >= domain.GetLength(1)) return false;
+            if (domain[r1, c1] == -1 || domain[r2, c2] == -1) return false;
 
-            Vector2 start = new Vector2(rowStart, col);
-            Vector2 end = new Vector2(curChunk.Corner2.Row - 1, col);
-
-            return (edgeCells, start, end);
+            return domain[r1, c1] == domain[r2, c2];
         }
-
-        private (Celltype[], Vector2, Vector2) GetRightEdge(Chunk curChunk) {
-            int rowStart = curChunk.Corner1.Row;
-            int rowCount = curChunk.Corner2.Row - curChunk.Corner1.Row;
-            int col = curChunk.Corner2.Col - 1;
-
-            var edgeCells = Enumerable.Range(rowStart, rowCount)
-                .Select(r => cells[r, col])
-                .ToArray();
-
-            Vector2 start = new Vector2(rowStart, col);
-            Vector2 end = new Vector2(curChunk.Corner2.Row - 1, col);
-
-            return (edgeCells, start, end);
-        }
-
-        private (Celltype[], Vector2, Vector2) GetUpEdge(Chunk curChunk) {
-            int colStart = curChunk.Corner1.Col;
-            int colCount = curChunk.Corner2.Col - curChunk.Corner1.Col;
-            int row = curChunk.Corner1.Row;
-
-            var edgeCells = Enumerable.Range(colStart, colCount)
-                .Select(c => cells[row, c])
-                .ToArray();
-
-            Vector2 start = new Vector2(row, colStart);
-            Vector2 end = new Vector2(row, curChunk.Corner2.Col - 1);
-
-            return (edgeCells, start, end);
-        }
-
-        private (Celltype[], Vector2, Vector2) GetDownEdge(Chunk curChunk) {
-            int colStart = curChunk.Corner1.Col;
-            int colCount = curChunk.Corner2.Col - curChunk.Corner1.Col;
-            int row = curChunk.Corner2.Row - 1;
-
-            var edgeCells = Enumerable.Range(colStart, colCount)
-                .Select(c => cells[row, c])
-                .ToArray();
-
-            Vector2 start = new Vector2(row, colStart);
-            Vector2 end = new Vector2(row, curChunk.Corner2.Col - 1);
-
-            return (edgeCells, start, end);
-        }
-
-        private Direction GetDirection((int, int) dir) {
-            if (dir == (0, 1)) return Direction.Right;
-            if (dir == (1, 0)) return Direction.Down;
-            if (dir == (0, -1)) return Direction.Left;
-            if (dir == (-1, 0)) return Direction.Up;
-            throw new Exception("Invalid direction");
-        }
-
-        public Chunk GetChunk(Vector2 coord) => chunks[coord.Row / gridSize, coord.Col / gridSize];
-
         public IEnumerable<Node> GetAllGates() {
-            var seen = new HashSet<Node>();
-            for (int i = 0; i < chunks.GetLength(0); i++) {
-                for (int j = 0; j < chunks.GetLength(1); j++) {
-                    foreach (var gate in chunks[i, j].Gates)
+            var seen = new HashSet<Gate>();
+            for (int i = 0; i < ChunksV2.GetLength(0); i++) {
+                for (int j = 0; j < ChunksV2.GetLength(1); j++) {
+                    foreach (var gate in ChunksV2[i, j].Gates)
                         if (seen.Add(gate))
-                            yield return gate;
+                            yield return gate.MapNode;
                 }
             }
         }
 
-        internal GridMap InitConnections(IAlgo algo) {
-            for (int i = 0; i < chunks.GetLength(0); i++) {
-                for (int j = 0; j < chunks.GetLength(1); j++) {
-                    var chunk = chunks[i, j];
+        internal GridMap InitConnections() {
+            for (int i = 0; i < ChunksV2.GetLength(0); i++) {
+                for (int j = 0; j < ChunksV2.GetLength(1); j++) {
+                    var chunk = ChunksV2[i, j];
+                    int[,] chunkConnectedComponents = GenerateChunkConnectedComponent(chunk);
                     var gates = chunk.Gates;
 
                     if (gates.Count < 2)
                         continue;
 
-                    // Build local graph for this chunk once
-                    var nodes = LocalChunkToNodes(chunk);
+
+                    var nodes = chunk.Nodes;
+
 
                     for (int u = 0; u < gates.Count; u++) {
-                        if (!nodes.TryGetValue(GetLocalVector2(chunk, gates[u].Pos), out var startNode))
-                            continue;
-
+                        Gate startGate = gates[u];
+                        //var localRow = startGate.Pos.Row - ChunkV2.Corner1.Row;
+                        //var localCol = startGate.Pos.Col - ChunkV2.Corner1.Col;
+                        //var startNode = nodes[localRow, localCol];
+                        Node startNode = startGate.MapNode;
                         for (int v = u + 1; v < gates.Count; v++) {
-                            if (!nodes.TryGetValue(GetLocalVector2(chunk, gates[v].Pos), out var goalNode))
-                                continue;
+                            Gate goalGate = gates[v];
+                            //var localGoalRow = goalGate.Pos.Row - ChunkV2.Corner1.Row;
+                            //var localGoalCol = goalGate.Pos.Col - ChunkV2.Corner1.Col;
+                            //var goalNode = nodes[localGoalRow, localGoalCol];
+                            var goalNode = goalGate.MapNode;
 
-                            FinalPath res = algo.FindGoal(startNode, goalNode);
+                            //FinalPath res = algo.FindGoal(startNode, goalNode); // this can be replaced later by using connected components
+                            //bool isConnected = ConnectedNodes(startNode, goalNode);
+                            bool isConnected = ConnectedRestricted(chunkConnectedComponents,chunk, startNode, goalNode);
 
-                            if (res.path.Count > 0) {
-                                if (!gates[u].Connections.Contains(gates[v]))
-                                    gates[u].Connections.Add(gates[v]);
+                            if (isConnected) {
+                                if (!gates[u].GateNode.Connections.Contains(gates[v].GateNode)){
+                                    gates[u].GateNode.Connections.Add(gates[v].GateNode);
+                                    //gates[u].MapNode.Connections.Add(gates[v].MapNode);
+                                }
 
-                                if (!gates[v].Connections.Contains(gates[u]))
-                                    gates[v].Connections.Add(gates[u]);
+                                if (!gates[v].GateNode.Connections.Contains(gates[u].GateNode)){
+                                    gates[v].GateNode.Connections.Add(gates[u].GateNode);
+                                    //gates[v].MapNode.Connections.Add(gates[u].MapNode);
+                                }
                             }
                         }
                     }
                 }
             }
-
+            var c = ChunksV2;
             return this;
         }
-        internal new GridMap InitComponents() {
-            return (GridMap) base.InitComponents();
-        }
 
-
-        private Vector2 GetLocalVector2(Chunk chunk, Vector2 pos) {
-            Debug.Assert(chunk != null);
-            Debug.Assert(pos.Row >= chunk.Corner1.Row && pos.Row < chunk.Corner2.Row, message: $"input vector2 out of bounds row : {pos.Row}");
-            Debug.Assert(pos.Col >= chunk.Corner1.Col && pos.Col < chunk.Corner2.Col);
-
-            return new Vector2(pos.Row - chunk.Corner1.Row, pos.Col - chunk.Corner1.Col);
-        }
-
-        private Celltype[,] GetLocalChunk(Chunk chunk) {
-
-            int rowLen = chunk.Corner2.Row - chunk.Corner1.Row;
-            int colLen = chunk.Corner2.Col - chunk.Corner1.Col;
-            Celltype[,] output = new Celltype[rowLen, colLen];
-
-            for (int i = 0; i < rowLen; i++) {
-                for (int j = 0; j < colLen; j++) {
-                    output[i, j] = cells[chunk.Corner1.Row + i, chunk.Corner1.Col + j];
+        private int[,] GenerateChunkConnectedComponent(Chunk chunkV2) {
+            int dim0 = chunkV2.Corner2.Row - chunkV2.Corner1.Row;
+            int dim1 = chunkV2.Corner2.Col - chunkV2.Corner1.Col;
+            int[,] domain = new int[dim0, dim1];
+            for (int i = 0; i<dim0;i++) {
+                for (int j = 0; j < dim1; j++) {
+                    domain[i, j] = chunkV2.Nodes[i, j] == null
+                                    ? -1              // wall
+                                    : i * dim1 + j;  // unique id
                 }
             }
-            
-            return output;
+            return CreateComponents(domain);
         }
-        private Dictionary<Vector2, Node> LocalChunkToNodes(Chunk chunk) {
-            Celltype[,] chunkMap = GetLocalChunk(chunk);
-            int rows = chunkMap.GetLength(0);
-            int cols = chunkMap.GetLength(1);
 
-            var nodes = new Dictionary<Vector2, Node>();
-
-            // create walkable cell nodes
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
-                    if (chunkMap[r, c] == Celltype.Wall)
-                        continue;
-
-                    var pos = new Vector2(r, c);
-                    nodes[pos] = new Node(pos, new List<Node>());
-                }
-            }
-
-            // connect cell neighbors
-            var dirs = new (int dr, int dc)[] {
-                (-1, 0), (1, 0), (0, -1), (0, 1)
-            };
-
-            foreach (var node in nodes.Values) {
-                foreach (var (dr, dc) in dirs) {
-                    var nextPos = new Vector2(node.Pos.Row + dr, node.Pos.Col + dc);
-                    if (nodes.TryGetValue(nextPos, out var neighbor)) {
-                        if (!node.Connections.Contains(neighbor))
-                            node.Connections.Add(neighbor);
-                    }
-                }
-            }
-
-            // attach gates
-            foreach (var gate in chunk.Gates) {
-                var localPos = GetLocalVector2(chunk, gate.Pos);
-
-                if (!nodes.TryGetValue(localPos, out var cellNode))
-                    throw new InvalidOperationException($"Gate at {gate.Pos} is not on a walkable cell.");
-
-                // connect gate node to the cell node
-                if (!gate.Connections.Contains(cellNode))
-                    gate.Connections.Add(cellNode);
-
-                if (!cellNode.Connections.Contains(gate))
-                    cellNode.Connections.Add(gate);
-            }
-
-            return nodes;
-        }
-        private Dictionary<Vector2, Node> GlobalChunkToNodes(Chunk chunk) {
-            Celltype[,] chunkMap = GetLocalChunk(chunk);
-            int rows = chunkMap.GetLength(0);
-            int cols = chunkMap.GetLength(1);
-
-            var nodes = new Dictionary<Vector2, Node>();
-
-            // create walkable cell nodes with GLOBAL positions
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
-                    if (chunkMap[r, c] == Celltype.Wall)
-                        continue;
-
-                    var globalPos = new Vector2(
-                        chunk.Corner1.Row + r,
-                        chunk.Corner1.Col + c
-                    );
-
-                    nodes[globalPos] = new Node(globalPos, new List<Node>());
-                }
-            }
-
-            // connect cell neighbors
-            var dirs = new (int dr, int dc)[]
-            {
-                (-1, 0), (1, 0), (0, -1), (0, 1)
-            };
-
-            foreach (var node in nodes.Values) {
-                foreach (var (dr, dc) in dirs) {
-                    var nextPos = new Vector2(node.Pos.Row + dr, node.Pos.Col + dc);
-
-                    if (nodes.TryGetValue(nextPos, out var neighbor)) {
-                        if (!node.Connections.Contains(neighbor))
-                            node.Connections.Add(neighbor);
-                    }
-                }
-            }
-            return nodes;
-        }
-        public FinalPath GetGridPath(IAlgo algo) {
-            if (start == null || goal ==null) {
+        public GridMap ConnectStartGate() {
+            if (start == null) {
                 throw new Exception();
             }
-            Chunk startChunk = GetChunk(start);
-            Chunk goalChunk = GetChunk(goal);
+            ConnectNodeToGates(start);
+            return this;
+        }
+        public GridMap ConnectGoalGate() {
+            if (goal == null) {
+                throw new Exception();
+            }
+            ConnectNodeToGates(goal);
+            return this;
+        }
+        private void ConnectNodeToGates(Vector2 nodePos) {
 
-            (Node startingGate, FinalPath startingPath) = GetConnectedGate(startChunk, start, algo);
-            (Node goalGate, FinalPath goalPath) = GetConnectedGate(goalChunk, goal, algo);
+            Chunk chunk = GetChunkV2(nodePos);
+            int[,] connectedComponetChunk = GenerateChunkConnectedComponent(chunk);
+            var gates = chunk.Gates;
+            var localRow = nodePos.Row - chunk.Corner1.Row;
+            var localCol = nodePos.Col - chunk.Corner1.Col;
+            var node = chunk.Nodes[localRow, localCol];
+            if (node == null) {
+                throw new Exception();
+            }
+            var newGate = new Gate(node, new Node(node.Pos, []));
+            chunk.Gates.Add(newGate);
 
-            FinalPath chunkPath = algo.FindGoal(startingGate, goalGate);
-            var chunkSet = new HashSet<Chunk>();
-            Dictionary<Chunk,(Node,Node?)> map = [];
-            foreach (Node node in chunkPath.nodes) {
-                var c = GetChunk(node.Pos);
-                chunkSet.Add(c);
+            foreach (Gate gate in gates) {
+                if (gate.Equals(newGate))
+                    continue;
+                //bool isConnected = ConnectedNodes(newGate.MapNode, gate.MapNode); // there needs to be a chunk level connected component system, otherwise if there is a wall that disconnects
+                bool isConnected = ConnectedRestricted(connectedComponetChunk, chunk, newGate.MapNode, gate.MapNode); // there needs to be a chunk level connected component system, otherwise if there is a wall that disconnects
+                if (isConnected) {
+                    newGate.GateNode.Connections.Add(gate.GateNode);
+                    gate.GateNode.Connections.Add(newGate.GateNode);
+                }
+            }
+        }
+        public FinalPath GetGridPath(IAlgo algo) {
+            if (start == null || goal == null) {
+                throw new Exception();
+            }
+            Chunk startChunkV2 = GetChunkV2(start);
+            Chunk goalChunkV2 = GetChunkV2(goal);
+
+            var startGate = startChunkV2.Gates.Find(gate => gate.MapNode.Pos == start);
+            var goalGate = goalChunkV2.Gates.Find(gate => gate.MapNode.Pos == goal);
+            
+            if (startGate == null)
+                throw new Exception("Start is null");
+            if (goalGate == null)
+                throw new Exception("Goal is null");
+            if (!ConnectedNodes(startGate.MapNode, goalGate.MapNode))
+                throw new Exception("Start and goal is to reachable to each other");
+            
+
+            FinalPath ChunkV2Path = algo.FindGoal(startGate.GateNode, goalGate.GateNode); 
+            var ChunkV2Set = new HashSet<Chunk>();
+
+            foreach (Node node in ChunkV2Path.nodes) {
+                var c = GetChunkV2(node.Pos);
+                ChunkV2Set.Add(c);
 
             }
-            var restrictedMap = BuildRestrictedMap(chunkSet);
+            var a = 1;
 
-            return algo.FindGoal(restrictedMap[start], restrictedMap[goal]);
+            return algo.FindGoal(startGate.MapNode, goalGate.MapNode, (Node n) => ChunkV2Set.Contains(GetChunkV2(n.Pos)));
+            //return ChunkV2Path; // temp
+        }
 
     }
 
-        private Dictionary<Vector2, Node> BuildRestrictedMap(HashSet<Chunk> chunkSet) {
-            List<(Dictionary<Vector2, Node> NodeMap, List<Node> Gates)> disconnectedNodeMaps = [];
-            Dictionary<Vector2, Node> mergedMap = new();
-
-            // Build per-chunk node maps and merge them into one dictionary
-            foreach (Chunk chunk in chunkSet) {
-                var nodeMap = GlobalChunkToNodes(chunk);
-                disconnectedNodeMaps.Add((nodeMap, chunk.Gates));
-
-                foreach (var kvp in nodeMap) {
-                    mergedMap[kvp.Key] = kvp.Value;
-                }
-            }
-
-            // Connect gates between neighboring chunks
-            for (int i = 0; i < disconnectedNodeMaps.Count; i++) {
-                for (int j = i; j < disconnectedNodeMaps.Count; j++) {
-                    var nodemap1 = disconnectedNodeMaps[i];
-                    var nodemap2 = disconnectedNodeMaps[j];
-
-                    foreach (var gate1 in nodemap1.Gates) {
-                        foreach (var gate2 in nodemap2.Gates) {
-                            var node1 = nodemap1.NodeMap[gate1.Pos];
-                            var node2 = nodemap2.NodeMap[gate2.Pos];
-
-                            if (Adjacent(gate1, gate2) &&
-                                !node1.Connections.Contains(node2) &&
-                                !node2.Connections.Contains(node1)) {
-
-                                node1.Connections.Add(node2);
-                                node2.Connections.Add(node1);
-                            }
-                        }
-                    }
-                }
-            }
-
-            return mergedMap;
-        }
-
-
-
-        private bool Adjacent(Node nodeA, Node nodeB) {
-            int dr = Math.Abs(nodeA.Pos.Row - nodeB.Pos.Row);
-            int dc = Math.Abs(nodeA.Pos.Col - nodeB.Pos.Col);
-            return dr + dc == 1;
-        }
-
-        private (Node Gate, FinalPath Path) GetConnectedGate(Chunk chunk, Vector2 pos, IAlgo algo) {
-            List<Node> gates = chunk.Gates;
-            var map = LocalChunkToNodes(chunk);
-            var localPos = GetLocalVector2(chunk, pos);
-            var startingNode = map[localPos];
-            int pathLength = int.MaxValue;
-            FinalPath path = new();
-            Node? closestGate = null;
-            foreach (Node gate in gates) {
-                
-                path = algo.FindGoal(startingNode, gate);
-                if (path.path.Count <= 0)
-                    continue;
-                if (path.path.Count < pathLength || closestGate == null) {
-                    closestGate = gate;
-                    pathLength = path.path.Count;
-                
-                }
-            }
-            if (closestGate == null || path == null) 
-                throw new Exception();    
-            
-            return (closestGate, path);
-        }
-
-    } 
 }
 
-
-
-//Cols →        0            4            8           10
-//            |------------|------------|------------|
-//Rows 0      | [0,0]      g [0,1]      | [0,2]      |
-//            | (0,0)      | (0,4)      | (0,8)      |
-//            |    →       |    →       g    →       |
-//            | (4,4)      | (4,8)      | (4,10)     |
-//Rows 4      |-g----------|-g----------|------------|
-//            | [1,0]      | [1,1]      | [1,2]      |
-//            | (4,0)      g (4,4)      | (4,8)      |
-//            |    →       |    →       |    →       |
-//            | (7,4)      | (7,8)      | (7,10)     |
-//Rows 7      |------g-----|------------|------------|

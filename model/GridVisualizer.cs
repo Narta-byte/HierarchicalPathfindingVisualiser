@@ -5,7 +5,7 @@ using System.Linq;
 using static HPF.model.Gate;
 
 public static class ChunkVisualizer {
-    public static void PrintChunksWithGates(GridMapV2 gridMap) {
+    public static void PrintChunksWithGates(GridMap gridMap) {
         int n = gridMap.N;
         int m = gridMap.M;
         int gridSize = gridMap.GridSize;

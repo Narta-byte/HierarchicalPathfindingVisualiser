@@ -26,7 +26,7 @@ public static class Visualizers
             if (step.isPath)
                 path.Add(step.pos);
             else if (step.isVisited)
-                visited.Add(step.pos);
+                visited.Add(step.pos);          
 
             Console.SetCursorPosition(0, 0);
             PrintFrame(map, visited, path, path.Count, i, finalPath.animationSteps.Count);

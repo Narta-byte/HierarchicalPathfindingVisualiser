@@ -110,64 +110,48 @@ public static class Program
         //   "...#........#......#........#..." +
         //   "...#........#......#........#..." +
         //   "...#...........................G";
-        int n = 2048 * 2, m = 2048 * 2;
-        string mapStr = LabyrinthGenerator.Generate(n, m, wallChance: 0.10);
+        int n = 512*8, m = 512*8;
+        //string mapStr = NoisyMapGenerator.Generate(n, m, wallChance: 0.30);
 
         //LabyrinthGenerator.PrintAsRows(mapStr,n,m);
+        // Round up to nearest odd number
+        if (n % 2 == 0) n++;
+        if (m % 2 == 0) m++;
+        // n = 17, m = 17
 
-        // 3) If you have a GridMap type, create it (stubbed here)
-        //    If your GridMap constructor differs, adjust accordingly.
-        GridMap gridmap = new GridMap(n, m, gridSize: 4);
-        //gridmap.MapFromStr(n, m, mapStr);
-        //gridmap.SetIsUsingOneGatePerEdge(true)
-        //       .InitComponents()
-        //       .InitChunks()
-        //       .InitGates()
-        //       .InitConnections(algo);
+        int mazeN = (n + 1) / 2; // = 9
+        int mazeM = (m + 1) / 2; // = 9
+        LabyrinthGenerator labyrinthGenerator = new LabyrinthGenerator();
+        string labStr = labyrinthGenerator.Generate(mazeN,mazeM).ToFlatString();
+        //n = n * 2 - 1;
+        //m = m * 2 - 1;
+        //Console.WriteLine(labStr);
 
         stopwatch.Start();
 
-        GridMapV2 gridmapv2 = new GridMapV2(n, m, gridSize: 4);
-        gridmapv2.MapFromStr(n, m, mapStr);
-        gridmapv2.InitComponents();
-        gridmapv2.SetIsUsingOneGatePerEdge(true)
-                 .InitChunks()
-                 .InitGatesV2()
-                 .InitConnections()
-                 .ConnectStartGate()
-                 .ConnectGoalGate();
+        
+        GridMap gridmapv2 = 
+            new GridMapBuilder(n,m,gridSize:4)
+                .WithMap(labStr)
+                .WithOneGatePerEdge(false)
+                .Build();
+
 
         stopwatch.Stop();
         Console.WriteLine($"Precomputing Time : {stopwatch.ElapsedMilliseconds} ms");
 
-
         //ChunkVisualizer.PrintChunksWithGates(gridmapv2);
         //ConnectionVisualizer.PrintConnections(gridmapv2);
 
-
-        var pa = gridmapv2.GetGridPath(algo);
-
         //PrintPathAsAscii(gridmap, pa.path);
-        //Visualizers.AnimateAsAscii(gridmapv2, pa, delayMs: 80);
+        //var path = gridmapv2.GetGridPath(aStar);
+        //Visualizers.AnimateAsAscii(gridmapv2, path, delayMs: 80);
 
         //ChunkVisualizer.PrintChunksWithGates(gridmapv2);
-        stopwatch.Restart();
+
         FinalPath p = new();
-        //for (int i = 0; i < 1; i++) { 
-        //    //Console.WriteLine($"i : {i}");
-        //    p = gridmap.GetGridPath(algo);
-        //    //FinalPath result = manager.Run();
-
-        //}
-        stopwatch.Stop();
-        Console.WriteLine($"Time taken gridv1: {stopwatch.ElapsedMilliseconds} ms. Path length : {p.nodes.Count}");
-
-        stopwatch.Restart();
-        p = new();
         for (int i = 0; i < 3; i++) {
-            //Console.WriteLine($"i : {i}");
             p = gridmapv2.GetGridPath(algo);
-            //FinalPath result = manager.Run();
 
         }
         stopwatch.Stop();
@@ -175,7 +159,6 @@ public static class Program
         stopwatch.Restart();
         p = new();
         for (int i = 0; i < 3; i++) {
-            //Console.WriteLine($"i : {i}");
             p = gridmapv2.GetGridPath(aStar);
             //FinalPath result = manager.Run();
 
@@ -186,13 +169,16 @@ public static class Program
         //Visualizers.AnimateAsAscii(gridmap, path, delayMs: 80);
         //ConnectionVisualizer.PrintConnections(gridmap);
         var pmap = new PMap(n, m);
-        pmap.MapFromStr(n, m, mapStr);
-        var manager = new Manager(algo, pmap, gridmap);
+        pmap.MapFromStr(n, m, labStr);
+        var manager = new Manager(algo, pmap);
 
         var nodes = pmap.ToNodes(pmap.cells);   // build the full graph once
-        var startNode = nodes[pmap.start];
-        var goalNode = nodes[pmap.goal];
+        var startNode = nodes[pmap.start ?? new Vector2(0,0)];
+        var goalNode = nodes[pmap.goal ?? new Vector2(0, 0)];
         stopwatch.Restart();
+
+        //Visualizers.AnimateAsAscii(pmap,algo.FindGoal(startNode, goalNode), delayMs: 80);
+
         for (int i = 0; i < 3; i++) { 
             p = algo.FindGoal(startNode, goalNode);
         }
@@ -206,15 +192,6 @@ public static class Program
 
         stopwatch.Stop();
         Console.WriteLine($"Time taken simple Astar: {stopwatch.ElapsedMilliseconds} ms. Path length : {p.nodes.Count}");
-        //// 5) ASCII printer: print the chosen shortest path
-        ////PrintPathAsAscii(pmap, result.path);
-        //
-        //Visualizers.AnimateAsAscii(pmap, result, delayMs: 80);
-
-
-        //// optionally pause at end
-        //Console.WriteLine("Done. Press any key...");
-        //Console.ReadKey();
     }
 
     

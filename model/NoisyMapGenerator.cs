@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 using HPF.model;
-public static class LabyrinthGenerator {
+public static class NoisyMapGenerator {
     public static string Generate(int n, int m, double wallChance = 0.25, int? seed = null) {
         var rng = seed.HasValue ? new Random(seed.Value) : new Random();
         var map = new char[n, m];
