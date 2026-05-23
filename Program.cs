@@ -115,8 +115,8 @@ public static class Program
 
         //LabyrinthGenerator.PrintAsRows(mapStr,n,m);
         // Round up to nearest odd number
-        var mapGen = new MapGenManager().SetMapSize(n,m);
-        string labStr = mapGen.GenerateLabyrinth(true);
+        var mapGen = new MapGenBuilder().SetMapSize(n,m);
+        string labStr = mapGen.BuildLabyrinth(false);
         //n = n * 2 - 1;
         //m = m * 2 - 1;
         Console.WriteLine(labStr);
@@ -125,7 +125,9 @@ public static class Program
 
         
         GridMap gridmapv2 = 
-            new GridMapBuilder(n,m,gridSize:4)
+            new GridMapBuilder()
+                .WithMapSize(n,m)
+                .WithGridSize(4)
                 .WithMap(labStr)
                 .WithOneGatePerEdge(false)
                 .Build();

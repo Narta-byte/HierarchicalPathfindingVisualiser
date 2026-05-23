@@ -1,8 +1,8 @@
 ﻿namespace HPF.model;
-public class MapGenManager {
+public class MapGenBuilder {
     private int maxRow;
     private int maxCol;
-    public MapGenManager SetMapSize(int newMaxRow, int maxHeight) {
+    public MapGenBuilder SetMapSize(int newMaxRow, int maxHeight) {
         if (newMaxRow % 2 == 0) newMaxRow++;
         if (maxHeight % 2 == 0) maxHeight++;
         maxRow = newMaxRow;
@@ -10,7 +10,9 @@ public class MapGenManager {
         return this;
     }
         
-    public string GenerateLabyrinth(bool isStartRestrictedToEdge = false) {
+    public string BuildLabyrinth(bool isStartRestrictedToEdge = false) {
+        if (maxRow==0 || maxCol == 0)
+            throw new Exception($"Map size not set");
         LabyrinthGenerator labyrinthGenerator = new LabyrinthGenerator();
         return labyrinthGenerator.Generate(maxRow, maxCol, isStartRestrictedToEdge)
                                  .ToFlatString();

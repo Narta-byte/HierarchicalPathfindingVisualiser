@@ -1,15 +1,18 @@
 ﻿namespace HPF.model {
     public class GridMapBuilder {
-        private readonly int _n, _m, _gridSize;
+        private int _n, _m, _gridSize;
         private string _mapStr = "";
         private bool _oneGatePerEdge = false;
 
-        public GridMapBuilder(int n, int m, int gridSize) {
+        public GridMapBuilder WithMapSize(int n, int m) {
             _n = n;
             _m = m;
-            _gridSize = gridSize;
+            return this;
         }
-
+        public GridMapBuilder WithGridSize(int gridSize) {
+            _gridSize = gridSize;
+            return this;
+        }
         public GridMapBuilder WithMap(string mapStr) {
             _mapStr = mapStr;
             return this;
