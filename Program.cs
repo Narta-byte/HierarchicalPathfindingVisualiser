@@ -110,22 +110,16 @@ public static class Program
         //   "...#........#......#........#..." +
         //   "...#........#......#........#..." +
         //   "...#...........................G";
-        int n = 512*8, m = 512*8;
+        int n = 32, m = 32;
         //string mapStr = NoisyMapGenerator.Generate(n, m, wallChance: 0.30);
 
         //LabyrinthGenerator.PrintAsRows(mapStr,n,m);
         // Round up to nearest odd number
-        if (n % 2 == 0) n++;
-        if (m % 2 == 0) m++;
-        // n = 17, m = 17
-
-        int mazeN = (n + 1) / 2; // = 9
-        int mazeM = (m + 1) / 2; // = 9
-        LabyrinthGenerator labyrinthGenerator = new LabyrinthGenerator();
-        string labStr = labyrinthGenerator.Generate(mazeN,mazeM).ToFlatString();
+        var mapGen = new MapGenManager().SetMapSize(n,m);
+        string labStr = mapGen.GenerateLabyrinth(true);
         //n = n * 2 - 1;
         //m = m * 2 - 1;
-        //Console.WriteLine(labStr);
+        Console.WriteLine(labStr);
 
         stopwatch.Start();
 

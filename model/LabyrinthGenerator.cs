@@ -1,10 +1,12 @@
-﻿using System;
+﻿using Microsoft.Diagnostics.Runtime;
+using System;
 using System.Collections.Generic;
 
 namespace HPF.model;
 
 
 public class Labyrinth {
+
     public int N { get; }
     public int M { get; }
 
@@ -12,16 +14,71 @@ public class Labyrinth {
     public Node Goal { get; set; }
 
     public Node[,] Cells { get; }
+    private Random _random;
 
-    public Labyrinth(int n, int m, Node start, Node goal) {
+    public Labyrinth(int n, int m, bool isStartRestrictedToEdge = false) {
         N = n;
         M = m;
-        Start = start;
-        Goal = goal;
+
+        _random = new Random();
 
         Cells = new Node[n, m];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                if (Cells[i, j] == null) {
+                    Cells[i, j] = new Node(
+                        Pos: new Vector2(i, j),
+                        Connections: []
+                    );
+                }
+            }
+        }
+
+        ((int startRow, int startCol), (int goalRow, int goalCol)) =
+            isStartRestrictedToEdge ? RandomAtEdge() : RandomStartAndGoal();
+        
+        Start = Cells[startRow, startCol];
+        Goal = Cells[goalRow, goalCol];
+
+
 
     }
+
+    private ((int startRow, int startCol), (int goalRow, int goalCol)) RandomAtEdge() {
+        
+        int r1 = _random.Next(1);
+        int r2 = _random.Next(1);
+
+        int startRow = (N-1) * ((r1 == 0) ? 1 : 0);
+        int startCol = (M-1) * ((r2 == 0) ? 1 : 0);
+
+        int goalRow = (N - 1) * ((r1 == 1) ? 1 : 0);
+        int goalCol = (M - 1) * ((r2 == 1) ? 1 : 0);
+
+        return ((startRow, startCol), (goalRow, goalCol));
+    }
+
+    private ((int startRow, int startCol), (int goalRow, int goalCol)) RandomStartAndGoal() {
+        int startRow = 0;
+        int startCol = 0;
+
+        int goalRow = 0;
+        int goalCol = 0;
+
+        bool isValidCoordinates = false;
+        while (!isValidCoordinates) {
+            startRow = _random.Next(N);
+            startCol = _random.Next(M);
+            goalRow = _random.Next(N);
+            goalCol = _random.Next(M);
+
+            isValidCoordinates = !(startRow == goalRow &&
+                                   startCol == goalCol);
+
+        }
+        return ((startRow, startCol), (goalRow, goalCol));
+    }
+
     public string ToFlatString() {
         int rows = 2 * N - 1;
         int cols = 2 * M - 1;
@@ -53,7 +110,7 @@ public class Labyrinth {
         var sb = new System.Text.StringBuilder();
         for (int row = 0; row < rows; row++) {
             sb.Append(grid, row * cols, cols);
-            //sb.Append('\n');
+            sb.Append("\n");
         }
 
         return sb.ToString();
@@ -63,24 +120,19 @@ public class Labyrinth {
         var sb = new System.Text.StringBuilder();
 
         for (int row = 0; row < N; row++) {
-            // Top border of this row
             for (int col = 0; col < M; col++) {
                 sb.Append("+");
                 var cell = Cells[row, col];
-                // Check if there's a passage to the cell above
                 bool passageUp = row > 0 && cell.Connections.Contains(Cells[row - 1, col]);
                 sb.Append(passageUp ? "  " : "--");
             }
             sb.AppendLine("+");
 
-            // Left border + cell content
             for (int col = 0; col < M; col++) {
                 var cell = Cells[row, col];
-                // Check if there's a passage to the cell to the left
                 bool passageLeft = col > 0 && cell.Connections.Contains(Cells[row, col - 1]);
                 sb.Append(passageLeft ? " " : "|");
 
-                // Cell content
                 if (cell == Start) sb.Append("S ");
                 else if (cell == Goal) sb.Append("G ");
                 else sb.Append("  ");
@@ -88,7 +140,6 @@ public class Labyrinth {
             sb.AppendLine("|");
         }
 
-        // Bottom border
         for (int col = 0; col < M; col++) {
             sb.Append("+--");
         }
@@ -102,57 +153,12 @@ public class LabyrinthGenerator {
     private readonly Random _random = new();
 
 
-    public Labyrinth Generate(int n, int m) {
+    public Labyrinth Generate(int n, int m, bool isStartRestrictedToEdge = false) {
         if (!(n >= 1 && m >= 1)) {
             throw new ArgumentException($"Labyrinth too small n : {n}, m : {m}");
         }
-        // Place random start and goal
-
-        bool isValidCoordinates = false;
-        int startRow = 0;
-        int startCol = 0;
-
-        int goalRow = 0;
-        int goalCol = 0;
-
-
-        while (!isValidCoordinates) { 
-            startRow = _random.Next(n);
-            startCol = _random.Next(m);
-            goalRow = _random.Next(n);
-            goalCol = _random.Next(m);
-
-            isValidCoordinates = !(startRow == goalRow &&
-                                   startCol == goalCol);
-
-        }
-        Node startNode = new Node(
-            Pos: new Vector2(startRow, startCol),
-            Connections: []
-        );
-        Node goalNode = new Node(
-            Pos: new Vector2(goalRow, goalCol),
-            Connections: []
-        );
-        var labyrinth = new Labyrinth(n, m, startNode, goalNode);
-
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) {
-                if (labyrinth.Cells[i, j] == null) {
-                    labyrinth.Cells[i, j] = new Node(
-                        Pos: new Vector2(i, j),
-                        Connections: []
-                    );
-                }
-            }
-        }
-        labyrinth.Start = labyrinth.Cells[startRow, startCol];
-        labyrinth.Goal = labyrinth.Cells[goalRow, goalCol];
-
-        // run DFS
+        var labyrinth = new Labyrinth(n, m, isStartRestrictedToEdge);
         GenerateLabyrinth(labyrinth);
-
-        // ??
 
         return labyrinth;
     }
@@ -203,28 +209,6 @@ public class LabyrinthGenerator {
 
         return null; // All neighbors visited → backtrack
     }
-
-
-    private void CreateConnections(Node current, Labyrinth labyrinth, HashSet<Node> visited) {
-        List<(int Row, int Col)> dirs = [(1, 0), (0, 1), (-1, 0), (0, -1)];
-        Shuffle(dirs);
-
-        foreach (var (Row, Col) in dirs) {
-            int newRow = current.Pos.Row + Row;
-            int newCol = current.Pos.Col + Col;
-
-            if (newRow >= labyrinth.N || newRow < 0) continue;
-            if (newCol >= labyrinth.M || newCol < 0) continue;
-
-            var neighbor = labyrinth.Cells[newRow, newCol];
-            if (neighbor == null || visited.Contains(neighbor)) continue;
-
-            // Bidirectional connection
-            current.Connections.Add(neighbor);
-            neighbor.Connections.Add(current);
-        }
-    }
-
     // from https://stackoverflow.com/questions/273313/randomize-a-listt
     private void Shuffle<T>(IList<T> list) {
         int n = list.Count;
