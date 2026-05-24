@@ -1,0 +1,10 @@
+{
+    "configurations": [
+        {
+            "name": "C#: HPF.Web [Default Configuration]",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}\\HPF.Web\\HPF.Web.csproj"
+        }
+    ]
+}

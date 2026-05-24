@@ -1,0 +1,21 @@
+﻿@page "/"
+@using HPF.model
+
+<button @onclick="Generate">
+    Generate
+</button>
+
+<pre>@map</pre>
+
+@code {
+    private string map = "";
+
+    void Generate()
+    {
+        var generated = new MapGenBuilder()
+            .SetMapSize(32, 32)
+            .BuildLabyrinth();
+
+        map = generated.MapString;
+    }
+}
