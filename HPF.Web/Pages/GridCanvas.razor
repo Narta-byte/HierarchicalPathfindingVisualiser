@@ -1,0 +1,92 @@
+@using Microsoft.AspNetCore.Components.Web
+@inject IJSRuntime JS
+
+<div class="canvas-wrapper"
+     @onmousedown="StartPan"
+     @onmousemove="Pan"
+     @onmouseup="EndPan"
+     @onmouseleave="EndPan"
+     @onwheel="Zoom">
+
+    <canvas class="grid-canvas"
+            @ref="canvas">
+    </canvas>
+
+</div>
+
+@code {
+
+    [Parameter] public int Rows { get; set; } = 64;
+    [Parameter] public int Cols { get; set; } = 64;
+
+    private ElementReference canvas;
+
+    private double offsetX;
+    private double offsetY;
+
+    private double scale = 1;
+
+    private bool dragging;
+
+    private double lastX;
+    private double lastY;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await Draw();
+    }
+
+    private async Task Draw()
+    {
+        await JS.InvokeVoidAsync(
+            "gridRenderer.draw",
+            canvas,
+            Rows,
+            Cols,
+            scale,
+            offsetX,
+            offsetY
+        );
+    }
+
+    private void StartPan(MouseEventArgs e)
+    {
+        dragging = true;
+
+        lastX = e.ClientX;
+        lastY = e.ClientY;
+    }
+
+    private async Task Pan(MouseEventArgs e)
+    {
+        if (!dragging)
+            return;
+
+        offsetX += e.ClientX - lastX;
+        offsetY += e.ClientY - lastY;
+
+        lastX = e.ClientX;
+        lastY = e.ClientY;
+
+        await Draw();
+    }
+
+    private void EndPan(MouseEventArgs e)
+    {
+        dragging = false;
+    }
+
+    private async Task Zoom(WheelEventArgs e)
+    {
+        scale += -e.DeltaY * 0.001;
+
+        scale = Math.Clamp(scale, 0.1, 6);
+
+        await Draw();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Draw();
+    }
+}

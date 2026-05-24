@@ -1,21 +1,17 @@
 ﻿@page "/"
+@using HPF.Web.Shared
 @using HPF.model
 
-<button @onclick="Generate">
-    Generate
-</button>
+<GridCanvas @ref="grid"
+            Rows="rows"
+            Cols="cols" />
 
-<pre>@map</pre>
+
+
 
 @code {
-    private string map = "";
+    GridCanvas? grid;
 
-    void Generate()
-    {
-        var generated = new MapGenBuilder()
-            .SetMapSize(32, 32)
-            .BuildLabyrinth();
-
-        map = generated.MapString;
-    }
+    int rows = 1024;
+    int cols = 1024;
 }

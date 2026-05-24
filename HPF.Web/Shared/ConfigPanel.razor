@@ -1,0 +1,32 @@
+<h3>Config</h3>
+
+<label>Algorithm</label>
+<select @bind="SelectedAlgorithm">
+    <option>BFS</option>
+    <option>A*</option>
+</select>
+
+<br /><br />
+
+<label>Grid size</label>
+<br />
+<input type="number" @bind="Rows" style="width:60px" /> x
+<input type="number" @bind="Cols" style="width:60px" />
+
+<br /><br />
+
+<button @onclick="Apply">Apply</button>
+
+@code {
+    [Parameter] public int Rows { get; set; }
+    [Parameter] public int Cols { get; set; }
+
+    [Parameter] public EventCallback<(int rows, int cols, string algo)> OnApply { get; set; }
+
+    public string SelectedAlgorithm { get; set; } = "BFS";
+
+    async Task Apply()
+    {
+        await OnApply.InvokeAsync((Rows, Cols, SelectedAlgorithm));
+    }
+}
