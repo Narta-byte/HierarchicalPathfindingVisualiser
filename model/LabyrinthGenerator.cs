@@ -110,7 +110,7 @@ public class Labyrinth {
         var sb = new System.Text.StringBuilder();
         for (int row = 0; row < rows; row++) {
             sb.Append(grid, row * cols, cols);
-            sb.Append("\n");
+            // sb.Append("\n");
         }
 
         return sb.ToString();
@@ -121,7 +121,7 @@ public class Labyrinth {
 
         for (int row = 0; row < N; row++) {
             for (int col = 0; col < M; col++) {
-                sb.Append("+");
+                sb.Append('+');
                 var cell = Cells[row, col];
                 bool passageUp = row > 0 && cell.Connections.Contains(Cells[row - 1, col]);
                 sb.Append(passageUp ? "  " : "--");

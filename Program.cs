@@ -36,102 +36,32 @@ public static class Program
 {
     public static void Main()
     {
-        // 1) 
-        IAlgo algo = new BFS();
-        IAlgo aStar = new AStar();
+        BFS bfs = new BFS();
+        AStar aStar = new AStar();
 
-        // 2) Create a map (S=start, G=goal, #=wall, .=empty)
-        //    NOTE: MapFromStr expects ALL rows concatenated into one string.
-        //int n = 7, m = 10;
-        //string mapStr =
-        //    "S....#...." +
-        //    ".##..#...." +
-        //    ".#...#..#." +
-        //    ".#.#.....#" +
-        //    ".#.#.###.#" +
-        //    ".#...#...G" +
-        //    ".....#....";
-
-        //int n = 8, m = 16;
-        //string mapStr =
-        //    "S..#........#..." +
-        //    "...#........#..." +
-        //    "...#........#..." +
-        //    "...#........####" +
-        //    "...#............" +
-        //    "...#...........G" +
-        //    "................" +
-        //    "...#............";
-        //string mapStr =
-        //   "............#..." +
-        //   "...#...#....#..." +
-        //   "##S#...#....#..." +
-        //   "...#...#....####" +
-        //   "...#...#....#..." +
-        //   "...#...#....#..G" +
-        //   "...#...#....#..." +
-        //   ".......#........";
-        //string mapStr =
-        //   ".S.#........#..." +
-        //   "...#...#....#..." +
-        //   "##.###.#....#..." +
-        //   ".....#.#....####" +
-        //   "...#.#.#....#..." +
-        //   "...#.#.#....#..G" +
-        //   "...#.#.#....#..." +
-        //   ".......#........";
-        //string mapStr =
-        //   ".S.#........#..." +
-        //   "...#...#....#..." +
-        //   "##.###.#....#..." +
-        //   ".....#.#....####" +
-        //   "...#.#.#....#..." +
-        //   "...#.#.#....#..G" +
-        //   "...#.#.#....#..." +
-        //   ".......#........";
         Stopwatch stopwatch = new Stopwatch();
 
-        //int n = 16, m = 32;
-
-        //string mapStr =
-        //   ".S.#...#....#......#........#..." +
-        //   "...#.#.#....#......#........#..." +
-        //   "...#.#.#....#......#........#..." +
-        //   ".....#.#....#......#........#..." +
-        //   "...###.#....#......#........#..." +
-        //   "...#........#......#........#..." +
-        //   "...#........#......#........#..." +
-        //   "...#........#......#........#..." +
-        //   "...#........#......#........#..." +
-        //   "...#........#......#........#..." +
-        //   "...#........#......#........#..." +
-        //   "...#........#......#........#..." +
-        //   "...#........#......#........#..." +
-        //   "...#........#......#........#..." +
-        //   "...#........#......#........#..." +
-        //   "...#...........................G";
+    
         int n = 32, m = 32;
-        //string mapStr = NoisyMapGenerator.Generate(n, m, wallChance: 0.30);
 
-        //LabyrinthGenerator.PrintAsRows(mapStr,n,m);
-        // Round up to nearest odd number
-        var mapGen = new MapGenBuilder().SetMapSize(n,m);
-        string labStr = mapGen.BuildLabyrinth(false);
-        //n = n * 2 - 1;
-        //m = m * 2 - 1;
-        Console.WriteLine(labStr);
+        var generatedMap = 
+            new MapGenBuilder()
+                .SetMapSize(n,m)
+                .WithisStartRestrictedToEdge(false)
+                .BuildLabyrinth();
+        Console.WriteLine(generatedMap.MapString);
 
         stopwatch.Start();
 
         
         GridMap gridmapv2 = 
             new GridMapBuilder()
-                .WithMapSize(n,m)
+                .WithMapSize(generatedMap.Rows,generatedMap.Cols)
                 .WithGridSize(4)
-                .WithMap(labStr)
+                .WithMap(generatedMap.MapString)
                 .WithOneGatePerEdge(false)
                 .Build();
-
+      
 
         stopwatch.Stop();
         Console.WriteLine($"Precomputing Time : {stopwatch.ElapsedMilliseconds} ms");
@@ -147,7 +77,7 @@ public static class Program
 
         FinalPath p = new();
         for (int i = 0; i < 3; i++) {
-            p = gridmapv2.GetGridPath(algo);
+            p = gridmapv2.GetGridPath(bfs);
 
         }
         stopwatch.Stop();
@@ -165,8 +95,8 @@ public static class Program
         //Visualizers.AnimateAsAscii(gridmap, path, delayMs: 80);
         //ConnectionVisualizer.PrintConnections(gridmap);
         var pmap = new PMap(n, m);
-        pmap.MapFromStr(n, m, labStr);
-        var manager = new Manager(algo, pmap);
+        pmap.MapFromStr(generatedMap.Rows, generatedMap.Cols, generatedMap.MapString);
+        var manager = new Manager(bfs, pmap);
 
         var nodes = pmap.ToNodes(pmap.cells);   // build the full graph once
         var startNode = nodes[pmap.start ?? new Vector2(0,0)];
@@ -176,7 +106,7 @@ public static class Program
         //Visualizers.AnimateAsAscii(pmap,algo.FindGoal(startNode, goalNode), delayMs: 80);
 
         for (int i = 0; i < 3; i++) { 
-            p = algo.FindGoal(startNode, goalNode);
+            p = bfs.FindGoal(startNode, goalNode);
         }
 
         stopwatch.Stop();
