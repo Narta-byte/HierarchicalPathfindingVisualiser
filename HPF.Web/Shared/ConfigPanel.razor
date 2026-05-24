@@ -1,60 +1,111 @@
-@using HPF.Web.Services
-@inject AppState State
-
 <div class="floating-sidebar">
 
-    <h3>HPF Config</h3>
+    <h3>Map Config</h3>
 
     <label>Rows</label>
-    <input type="number" @bind="State.Config.Rows" />
+    <input type="number" @bind="Rows" />
 
     <label>Cols</label>
-    <input type="number" @bind="State.Config.Cols" />
+    <input type="number" @bind="Cols" />
 
-    <label>Generator</label>
-    <select @bind="State.Config.Generator">
-
-        <option>Labyrinth</option>
-        <option>Noise</option>
-        <option>Hardcoded</option>
-
-    </select>
+    <label>Chunk Size</label>
+    <input type="number" @bind="ChunkSize" />
 
     <label>Algorithm</label>
-    <select @bind="State.Config.Algorithm">
-
+    <select @bind="SelectedAlgorithm">
         <option>BFS</option>
         <option>AStar</option>
-
     </select>
 
-    @if (State.Config.Generator == "Noise")
-    {
-        <label>Noise</label>
-        <input type="range"
-               min="0"
-               max="1"
-               step="0.05"
-               @bind="State.Config.NoiseLevel" />
-    }
+    <label>
+        <input type="checkbox" @bind="RestrictStartToEdge" />
+        Restrict Start To Edge
+    </label>
 
-    @if (State.Config.Generator == "Hardcoded")
-    {
-        <label>Map Id</label>
-        <input type="number"
-               @bind="State.Config.HardcodedMapId" />
-    }
+    <label>
+        <input type="checkbox" @bind="OneGatePerEdge" />
+        One Gate Per Edge
+    </label>
+
+    <hr />
+
+    <label>
+        <input type="checkbox" @bind="ShowChunks" />
+        Show Chunks
+    </label>
+
+    <label>
+        <input type="checkbox" @bind="ShowGates" />
+        Show Gates
+    </label>
+
+    <label>
+        <input type="checkbox" @bind="ShowConnections" />
+        Show Connections
+    </label>
+
+    <label>
+        <input type="checkbox" @bind="ShowPath" />
+        Show Path
+    </label>
 
     <button @onclick="Generate">
         Generate
+    </button>
+
+    <button @onclick="RunPathfinding">
+        Find Path
     </button>
 
 </div>
 
 @code {
 
-    void Generate()
+    [Parameter] public EventCallback<AppConfig> OnGenerate { get; set; }
+    [Parameter] public EventCallback<AppConfig> OnRunPathfinding { get; set; }
+
+    int Rows = 64;
+    int Cols = 64;
+
+    int ChunkSize = 4;
+
+    bool RestrictStartToEdge = false;
+    bool OneGatePerEdge = false;
+
+    bool ShowChunks = true;
+    bool ShowGates = true;
+    bool ShowConnections = false;
+    bool ShowPath = true;
+
+    string SelectedAlgorithm = "AStar";
+
+    async Task Generate()
     {
-        State.GenerateMap();
+        await OnGenerate.InvokeAsync(BuildConfig());
+    }
+
+    async Task RunPathfinding()
+    {
+        await OnRunPathfinding.InvokeAsync(BuildConfig());
+    }
+
+    AppConfig BuildConfig()
+    {
+        return new AppConfig
+        {
+            Rows = Rows,
+            Cols = Cols,
+            ChunkSize = ChunkSize,
+
+            RestrictStartToEdge = RestrictStartToEdge,
+            OneGatePerEdge = OneGatePerEdge,
+
+            ShowChunks = ShowChunks,
+            ShowGates = ShowGates,
+            ShowConnections = ShowConnections,
+            ShowPath = ShowPath,
+
+            Algorithm = SelectedAlgorithm
+        };
     }
 }

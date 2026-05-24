@@ -1,16 +1,59 @@
 ﻿@page "/"
-@using HPF.Web.Services
 
-@inject AppState State
+@using HPF.model
+@using HPF.Web.Shared
+<div class="main-content">
 
-<GridCanvas Map="State.CurrentMap" />
+    <ConfigPanel
+        OnGenerate="GenerateMap"
+        OnRunPathfinding="RunPathfinding" />
+
+    <GridCanvas
+        Map="currentMap"
+        GridMap="gridMap"
+        Path="currentPath"
+        Config="config" />
+
+</div>
 
 @code {
 
-    protected override void OnInitialized()
-    {
-        State.OnChange += StateHasChanged;
+    GeneratedMap? currentMap;
+    GridMap? gridMap;
+    FinalPath? currentPath;
 
-        State.GenerateMap();
+    AppConfig config = new();
+
+    async Task GenerateMap(AppConfig cfg)
+    {
+        config = cfg;
+
+        currentMap =
+            new MapGenBuilder()
+                .SetMapSize(cfg.Rows, cfg.Cols)
+                .WithisStartRestrictedToEdge(cfg.RestrictStartToEdge)
+                .BuildLabyrinth();
+
+        gridMap =
+            new GridMapBuilder()
+                .WithMapSize(currentMap.Rows, currentMap.Cols)
+                .WithGridSize(cfg.ChunkSize)
+                .WithMap(currentMap.MapString)
+                .WithOneGatePerEdge(cfg.OneGatePerEdge)
+                .Build();
+
+        currentPath = null;
+    }
+
+    async Task RunPathfinding(AppConfig cfg)
+    {
+        if (gridMap is null)
+            return;
+
+        IAlgo algo = cfg.Algorithm == "BFS"
+            ? new BFS()
+            : new AStar();
+
+        currentPath = gridMap.GetGridPath(algo);
     }
 }

@@ -31,7 +31,8 @@ namespace HPF.model {
         int gridSize = 4;
 
         public int GridSize => gridSize;
-
+    public List<Node> AllGates =>
+        GetAllGates().ToList();
         Chunk[,] ChunksV2 = new Chunk[0, 0];
         public GridMap(int n, int m, int gridSize) : base(n, m) {
             this.gridSize = gridSize;
