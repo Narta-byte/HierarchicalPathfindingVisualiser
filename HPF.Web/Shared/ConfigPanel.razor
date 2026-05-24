@@ -1,32 +1,60 @@
-<h3>Config</h3>
+@using HPF.Web.Services
+@inject AppState State
 
-<label>Algorithm</label>
-<select @bind="SelectedAlgorithm">
-    <option>BFS</option>
-    <option>A*</option>
-</select>
+<div class="floating-sidebar">
 
-<br /><br />
+    <h3>HPF Config</h3>
 
-<label>Grid size</label>
-<br />
-<input type="number" @bind="Rows" style="width:60px" /> x
-<input type="number" @bind="Cols" style="width:60px" />
+    <label>Rows</label>
+    <input type="number" @bind="State.Config.Rows" />
 
-<br /><br />
+    <label>Cols</label>
+    <input type="number" @bind="State.Config.Cols" />
 
-<button @onclick="Apply">Apply</button>
+    <label>Generator</label>
+    <select @bind="State.Config.Generator">
+
+        <option>Labyrinth</option>
+        <option>Noise</option>
+        <option>Hardcoded</option>
+
+    </select>
+
+    <label>Algorithm</label>
+    <select @bind="State.Config.Algorithm">
+
+        <option>BFS</option>
+        <option>AStar</option>
+
+    </select>
+
+    @if (State.Config.Generator == "Noise")
+    {
+        <label>Noise</label>
+        <input type="range"
+               min="0"
+               max="1"
+               step="0.05"
+               @bind="State.Config.NoiseLevel" />
+    }
+
+    @if (State.Config.Generator == "Hardcoded")
+    {
+        <label>Map Id</label>
+        <input type="number"
+               @bind="State.Config.HardcodedMapId" />
+    }
+
+    <button @onclick="Generate">
+        Generate
+    </button>
+
+</div>
 
 @code {
-    [Parameter] public int Rows { get; set; }
-    [Parameter] public int Cols { get; set; }
 
-    [Parameter] public EventCallback<(int rows, int cols, string algo)> OnApply { get; set; }
-
-    public string SelectedAlgorithm { get; set; } = "BFS";
-
-    async Task Apply()
+    void Generate()
     {
-        await OnApply.InvokeAsync((Rows, Cols, SelectedAlgorithm));
+        State.GenerateMap();
     }
 }

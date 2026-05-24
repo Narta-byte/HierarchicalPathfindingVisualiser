@@ -1,3 +1,4 @@
+@using HPF.model
 @using Microsoft.AspNetCore.Components.Web
 @inject IJSRuntime JS
 
@@ -16,13 +17,13 @@
 
 @code {
 
-    [Parameter] public int Rows { get; set; } = 64;
-    [Parameter] public int Cols { get; set; } = 64;
+    [Parameter]
+    public GeneratedMap? Map { get; set; }
 
     private ElementReference canvas;
 
-    private double offsetX;
-    private double offsetY;
+    private double offsetX = 20;
+    private double offsetY = 20;
 
     private double scale = 1;
 
@@ -36,13 +37,22 @@
         await Draw();
     }
 
+    protected override async Task OnParametersSetAsync()
+    {
+        await Draw();
+    }
+
     private async Task Draw()
     {
+        if (Map == null)
+            return;
+
         await JS.InvokeVoidAsync(
             "gridRenderer.draw",
             canvas,
-            Rows,
-            Cols,
+            Map.Rows,
+            Map.Cols,
+            Map.MapString,
             scale,
             offsetX,
             offsetY
@@ -78,15 +88,12 @@
 
     private async Task Zoom(WheelEventArgs e)
     {
-        scale += -e.DeltaY * 0.001;
+        double zoomSpeed = 0.001;
 
-        scale = Math.Clamp(scale, 0.1, 6);
+        double newScale = scale - e.DeltaY * zoomSpeed;
 
-        await Draw();
-    }
+        scale = Math.Clamp(newScale, 0.1, 8);
 
-    protected override async Task OnParametersSetAsync()
-    {
         await Draw();
     }
 }

@@ -1,68 +1,76 @@
 window.gridRenderer = {
 
-    pending: false,
+    draw: function (
+        canvas,
+        rows,
+        cols,
+        mapString,
+        scale,
+        offsetX,
+        offsetY
+    ) {
 
-    draw: function (canvas, rows, cols, scale, offsetX, offsetY) {
-
-        if (this.pending)
+        if (!canvas)
             return;
 
-        this.pending = true;
+        const ctx = canvas.getContext("2d");
 
-        requestAnimationFrame(() => {
+        const CELL_SIZE = 16;
 
-            this.pending = false;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-            const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (!ctx)
-                return;
+        ctx.save();
 
-            const rect = canvas.getBoundingClientRect();
+        ctx.translate(offsetX, offsetY);
+        ctx.scale(scale, scale);
 
-            if (canvas.width !== rect.width)
-                canvas.width = rect.width;
+        for (let y = 0; y < rows; y++) {
 
-            if (canvas.height !== rect.height)
-                canvas.height = rect.height;
+            for (let x = 0; x < cols; x++) {
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const i = y * cols + x;
+                const c = mapString[i];
 
-            const cellSize = 24;
+                switch (c) {
 
-            ctx.save();
+                    case '#':
+                        ctx.fillStyle = "#222";
+                        break;
 
-            ctx.translate(offsetX, offsetY);
-            ctx.scale(scale, scale);
+                    case 'S':
+                        ctx.fillStyle = "#00aa00";
+                        break;
 
-            ctx.fillStyle = "#e0e0e0";
-            ctx.strokeStyle = "#8a8a8a";
+                    case 'G':
+                        ctx.fillStyle = "#cc0000";
+                        break;
 
-            const viewLeft   = -offsetX / scale;
-            const viewTop    = -offsetY / scale;
-
-            const viewRight  = viewLeft + canvas.width / scale;
-            const viewBottom = viewTop + canvas.height / scale;
-
-            const startX = Math.max(0, Math.floor(viewLeft / cellSize));
-            const startY = Math.max(0, Math.floor(viewTop / cellSize));
-
-            const endX = Math.min(cols, Math.ceil(viewRight / cellSize));
-            const endY = Math.min(rows, Math.ceil(viewBottom / cellSize));
-
-            for (let y = startY; y < endY; y++) {
-
-                for (let x = startX; x < endX; x++) {
-
-                    const px = x * cellSize;
-                    const py = y * cellSize;
-
-                    ctx.fillRect(px, py, cellSize, cellSize);
-                    ctx.strokeRect(px, py, cellSize, cellSize);
+                    default:
+                        ctx.fillStyle = "#d4d0c8";
+                        break;
                 }
-            }
 
-            ctx.restore();
-        });
+                ctx.fillRect(
+                    x * CELL_SIZE,
+                    y * CELL_SIZE,
+                    CELL_SIZE,
+                    CELL_SIZE
+                );
+
+                ctx.strokeStyle = "#999";
+
+                ctx.strokeRect(
+                    x * CELL_SIZE,
+                    y * CELL_SIZE,
+                    CELL_SIZE,
+                    CELL_SIZE
+                );
+            }
+        }
+
+        ctx.restore();
     }
 };

@@ -1,10 +1,12 @@
 ﻿@using HPF.Web.Shared
 @inherits LayoutComponentBase
 
-<div class="main-content">
-    @Body
-</div>
+<div class="app-shell">
 
-<div class="floating-sidebar">
     <ConfigPanel />
+
+    <main class="main-content">
+        @Body
+    </main>
+
 </div>

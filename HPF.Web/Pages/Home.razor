@@ -1,17 +1,16 @@
 ﻿@page "/"
-@using HPF.Web.Shared
-@using HPF.model
+@using HPF.Web.Services
 
-<GridCanvas @ref="grid"
-            Rows="rows"
-            Cols="cols" />
+@inject AppState State
 
-
-
+<GridCanvas Map="State.CurrentMap" />
 
 @code {
-    GridCanvas? grid;
 
-    int rows = 1024;
-    int cols = 1024;
+    protected override void OnInitialized()
+    {
+        State.OnChange += StateHasChanged;
+
+        State.GenerateMap();
+    }
 }
