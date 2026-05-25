@@ -1,59 +1,98 @@
+@using HPF.model
+
 <div class="floating-sidebar">
 
     <h3>Map Config</h3>
 
-    <label>Rows</label>
-    <input type="number" @bind="Rows" />
+    <div class="config-group">
 
-    <label>Cols</label>
-    <input type="number" @bind="Cols" />
+        <div class="config-row">
+            <label>Rows</label>
+            <input type="number" @bind="Rows" />
+        </div>
 
-    <label>Chunk Size</label>
-    <input type="number" @bind="ChunkSize" />
+        <div class="config-row">
+            <label>Cols</label>
+            <input type="number" @bind="Cols" />
+        </div>
 
-    <label>Algorithm</label>
-    <select @bind="SelectedAlgorithm">
-        <option>BFS</option>
-        <option>AStar</option>
-    </select>
+        <div class="config-row">
+            <label>Chunk Size</label>
+            <input type="number" @bind="ChunkSize" />
+        </div>
 
-    <label>
-        <input type="checkbox" @bind="RestrictStartToEdge" />
-        Restrict Start To Edge
-    </label>
-
-    <label>
-        <input type="checkbox" @bind="OneGatePerEdge" />
-        One Gate Per Edge
-    </label>
+    </div>
 
     <hr />
 
-    <label>
-        <input type="checkbox" @bind="ShowChunks" />
-        Show Chunks
-    </label>
+    <div class="config-group">
+        <div class="config-row">
+            <label>Generator</label>
+            <select @bind="SelectedGenerator">
+                <option value="Labyrinth">Labyrinth</option>
+                <option value="Noise">Noise Map</option>
+            </select>
+        </div>
 
-    <label>
-        <input type="checkbox" @bind="ShowGates" />
-        Show Gates
-    </label>
+        @if (SelectedGenerator == "Noise")
+        {
+            <div class="config-row">
+                <label>Noise Level</label>
+                <input type="range" min="0" max="1" step="0.05" @bind="NoiseLevel" />
+            </div>
+        }
+    </div>
 
-    <label>
-        <input type="checkbox" @bind="ShowConnections" />
-        Show Connections
-    </label>
+    <hr />
 
-    <label>
-        <input type="checkbox" @bind="ShowPath" />
-        Show Path
-    </label>
+    <div class="config-group">
 
-    <button @onclick="Generate">
+        <div class="config-row">
+            <label>Path Algorithm</label>
+            <select @bind="SelectedAlgorithm">
+                <option>AStar</option>
+                <option>BFS</option>
+            </select>
+        </div>
+
+        <div class="config-row">
+            <label>Gate Algorithm</label>
+            <select @bind="SelectedGateAlgorithm">
+                <option>AStar</option>
+                <option>BFS</option>
+            </select>
+        </div>
+
+    </div>
+
+    <hr />
+
+    <div class="config-group">
+
+        <div class="toggle-row">
+            <input type="checkbox" @bind="ShowChunks" @bind:after="NotifyVisualChange" />
+            <span>Show Chunks</span>
+        </div>
+
+        <div class="toggle-row">
+            <input type="checkbox" @bind="ShowGates" @bind:after="NotifyVisualChange" />
+            <span>Show Gates</span>
+        </div>
+
+        <div class="toggle-row">
+            <input type="checkbox" @bind="ShowConnections" @bind:after="NotifyVisualChange" />
+            <span>Show Connections</span>
+        </div>
+
+    </div>
+
+    <hr />
+
+    <button class="primary-button" @onclick="Generate">
         Generate
     </button>
 
-    <button @onclick="RunPathfinding">
+    <button class="secondary-button" @onclick="RunPathfinding">
         Find Path
     </button>
 
@@ -63,14 +102,11 @@
 
     [Parameter] public EventCallback<AppConfig> OnGenerate { get; set; }
     [Parameter] public EventCallback<AppConfig> OnRunPathfinding { get; set; }
+    [Parameter] public EventCallback<AppConfig> OnVisualConfigChanged { get; set; }
 
     int Rows = 64;
     int Cols = 64;
-
     int ChunkSize = 4;
-
-    bool RestrictStartToEdge = false;
-    bool OneGatePerEdge = false;
 
     bool ShowChunks = true;
     bool ShowGates = true;
@@ -78,6 +114,13 @@
     bool ShowPath = true;
 
     string SelectedAlgorithm = "AStar";
+    string SelectedGateAlgorithm = "AStar";
+
+    string SelectedGenerator = "Labyrinth";
+    string SelectedNoiseMap = "Noise";
+    double NoiseLevel = 0.3;
+    // NEW
+    string SelectedWorldType = "Maze";
 
     async Task Generate()
     {
@@ -89,7 +132,12 @@
         await OnRunPathfinding.InvokeAsync(BuildConfig());
     }
 
-    AppConfig BuildConfig()
+    async Task NotifyVisualChange()
+    {
+        await OnVisualConfigChanged.InvokeAsync(BuildConfig());
+    }
+
+   AppConfig BuildConfig()
     {
         return new AppConfig
         {
@@ -97,15 +145,23 @@
             Cols = Cols,
             ChunkSize = ChunkSize,
 
-            RestrictStartToEdge = RestrictStartToEdge,
-            OneGatePerEdge = OneGatePerEdge,
-
             ShowChunks = ShowChunks,
             ShowGates = ShowGates,
             ShowConnections = ShowConnections,
             ShowPath = ShowPath,
 
-            Algorithm = SelectedAlgorithm
+            Algorithm = SelectedAlgorithm,
+            GateAlgorithm = SelectedGateAlgorithm,
+
+            Generator = SelectedWorldType == "Maze"
+                ? SelectedGenerator
+                : "None",
+
+            NoiseMap = SelectedWorldType == "Noise"
+                ? SelectedNoiseMap
+                : "None",
+
+            NoiseLevel = NoiseLevel
         };
     }
 }

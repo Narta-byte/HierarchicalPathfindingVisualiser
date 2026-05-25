@@ -72,9 +72,10 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (!_initialized)
-            return;
         currentFrame = 0;
+        isPlaying = false;
+        playCts?.Cancel();
+
         await Draw();
     }
 

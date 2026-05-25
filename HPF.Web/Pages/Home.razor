@@ -6,8 +6,9 @@
 <div class="main-content">
 
     <ConfigPanel
-        OnGenerate="GenerateMap"
-        OnRunPathfinding="RunPathfinding" />
+    OnGenerate="GenerateMap"
+    OnRunPathfinding="RunPathfinding"
+    OnVisualConfigChanged="UpdateVisuals" />
 
     <GridCanvas
         Map="currentMap"
@@ -29,21 +30,28 @@
     {
         config = cfg;
 
-        currentMap =
-            new MapGenBuilder()
-                .SetMapSize(cfg.Rows, cfg.Cols)
-                .WithisStartRestrictedToEdge(cfg.RestrictStartToEdge)
-                .BuildLabyrinth();
+        currentPath = null;
+        gridMap = null;
+        currentMap = null;
+
+        var builder = new MapGenBuilder()
+            .SetMapSize(cfg.Rows, cfg.Cols)
+            .WithisStartRestrictedToEdge(cfg.RestrictStartToEdge);
+
+        currentMap = cfg.Generator switch
+        {
+            "Noise" => builder.GenerateNoiseMap(cfg.NoiseLevel),
+            _ => builder.BuildLabyrinth()
+        };
 
         gridMap =
             new GridMapBuilder()
                 .WithMapSize(currentMap.Rows, currentMap.Cols)
                 .WithGridSize(cfg.ChunkSize)
                 .WithMap(currentMap.MapString)
-                .WithOneGatePerEdge(cfg.OneGatePerEdge)
                 .Build();
 
-        currentPath = null;
+        StateHasChanged();
     }
 
     async Task RunPathfinding(AppConfig cfg)
@@ -68,5 +76,13 @@
                 })
                 .ToList()
         };
+    }
+    void UpdateVisuals(AppConfig cfg)
+    {
+        config.ShowChunks = cfg.ShowChunks;
+        config.ShowGates = cfg.ShowGates;
+        config.ShowConnections = cfg.ShowConnections;
+
+        StateHasChanged();
     }
 }

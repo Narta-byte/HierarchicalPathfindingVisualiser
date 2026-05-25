@@ -21,6 +21,13 @@ public class AppConfig
 
     public string Generator { get; set; } = "Labyrinth";
 
+    public string NoiseMap { get; set; } = "Noise";
+
+    public string GateAlgorithm { get; set; } = "AStar";
+
+    // separate algorithms
+    public string PathAlgorithm { get; set; } = "AStar";
+
     public double NoiseLevel { get; set; } = 0.30;
 
     public int HardcodedMapId { get; set; } = 0;
