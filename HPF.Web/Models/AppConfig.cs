@@ -10,10 +10,9 @@ public class AppConfig
     public bool RestrictStartToEdge { get; set; }
     public bool OneGatePerEdge { get; set; }
 
-    public bool ShowChunks { get; set; } = true;
-    public bool ShowGates { get; set; } = true;
+    public bool ShowChunks { get; set; } = false;
+    public bool ShowGates { get; set; } = false;
     public bool ShowConnections { get; set; }
-    public bool ShowPath { get; set; } = true;
 
     public string Algorithm { get; set; } = "AStar";
 

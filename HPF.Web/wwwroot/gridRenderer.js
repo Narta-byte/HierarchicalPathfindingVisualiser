@@ -116,7 +116,7 @@ function drawGates(ctx, gridMap, cellSize) {
     const gates = gridMap?.allGates;
     if (!Array.isArray(gates)) return;
 
-    ctx.fillStyle = "yellow";
+    ctx.fillStyle = "#ba4e23";
 
     for (const gate of gates) {
         if (!gate?.pos) continue;
@@ -154,10 +154,10 @@ function drawPath(ctx, path, cellSize, currentFrame) {
         const y = step.pos.row * cellSize;
 
         if (step.isVisited)
-            ctx.fillStyle = "#4fc3f7";
+            ctx.fillStyle = "#7f9928";
 
         if (step.isPath)
-            ctx.fillStyle = "#ffff00";
+            ctx.fillStyle = "#cd0d0d";
 
         ctx.fillRect(
             x + 3,
@@ -175,8 +175,8 @@ function drawConnections(ctx, gridMap, cellSize) {
     if (!Array.isArray(gates))
         return;
 
-    ctx.strokeStyle = "#ff00ff";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#f4a629";
+    ctx.lineWidth = 3;
 
     for (const gate of gates) {
 

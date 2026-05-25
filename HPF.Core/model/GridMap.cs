@@ -106,155 +106,208 @@ namespace HPF.model {
             return this;
         }
 
-        public GridMap InitGates() {
-            int chunkRows = ChunksV2.GetLength(0);
-            int chunkCols = ChunksV2.GetLength(1);
+    public GridMap InitGates() {
+        int chunkRows = ChunksV2.GetLength(0);
+        int chunkCols = ChunksV2.GetLength(1);
 
-            for (int r = 0; r < chunkRows; r++) {
-                for (int c = 0; c < chunkCols; c++) {
-                    Chunk chunk = ChunksV2[r, c];
-                    int rowCount = chunk.Nodes.GetLength(0);
-                    int colCount = chunk.Nodes.GetLength(1);
-                    int[,] curChunkComponent = GenerateChunkConnectedComponent(chunk);
+        for (int r = 0; r < chunkRows; r++) {
+            for (int c = 0; c < chunkCols; c++) {
 
-                    // Connect chunk below
-                    if (r + 1 < chunkRows) {
-                        Chunk down = ChunksV2[r + 1, c];
-                        int downColCount = down.Nodes.GetLength(1);
-                        int limit = Math.Min(colCount, downColCount);
+                Chunk chunk = ChunksV2[r, c];
 
-                        int[,] downChunkConnectedComponent = GenerateChunkConnectedComponent(down);
-                        HashSet<(int, int)> isAlreadyConnectedSet = new();
-                        for (int col = 0; col < limit; col++) {
-                            var bottomRow = chunk.Nodes[rowCount - 1, col];
-                            var topRow = down.Nodes[0, col];
+                int rowCount = chunk.Nodes.GetLength(0);
+                int colCount = chunk.Nodes.GetLength(1);
 
+                int[,] curChunkComponent =
+                    GenerateChunkConnectedComponent(chunk);
+                // connect chunk down
+                if (r + 1 < chunkRows) {
 
+                    Chunk down = ChunksV2[r + 1, c];
 
-                            if (bottomRow != null && topRow != null) {
-                                Gate bottomGate = GetOrCreateGate(chunk, bottomRow);
-                                Gate topGate = GetOrCreateGate(down, topRow);
+                    int downColCount = down.Nodes.GetLength(1);
 
+                    int limit = Math.Min(colCount, downColCount);
 
-                                Vector2 bottomCoord = bottomGate.MapNode.Pos;
+                    int[,] downChunkConnectedComponent =
+                        GenerateChunkConnectedComponent(down);
 
-                                int bottomLocalRow = bottomCoord.Row - chunk.Corner1.Row;
-                                int bottomLocalCol = bottomCoord.Col - chunk.Corner1.Col;
+                    HashSet<(int, int)> connectedComponentPairs = new();
 
-                                int bottomComponent =
-                                    curChunkComponent[bottomLocalRow, bottomLocalCol];
+                    for (int col = 0; col < limit; col++) {
 
-                                Vector2 topCoord = topGate.MapNode.Pos;
+                        Node? bottomNode =
+                            chunk.Nodes[rowCount - 1, col];
 
-                                int topLocalRow = topCoord.Row - down.Corner1.Row;
-                                int topLocalCol = topCoord.Col - down.Corner1.Col;
+                        Node? topNode =
+                            down.Nodes[0, col];
 
-                                int topComponent =
-                                    downChunkConnectedComponent[topLocalRow, topLocalCol];
+                        if (bottomNode == null || topNode == null)
+                            continue;
 
-                                bool isAlreadyConnected = isAlreadyConnectedSet.Contains((bottomComponent, topComponent));
+                        // local coords in current chunk
+                        int bottomLocalRow =
+                            bottomNode.Pos.Row - chunk.Corner1.Row;
 
+                        int bottomLocalCol =
+                            bottomNode.Pos.Col - chunk.Corner1.Col;
 
-                                if (!bottomGate.GateNode.Connections.Contains(topGate.GateNode) && !isAlreadyConnected) {
-                                    bottomGate.GateNode.Connections.Add(topGate.GateNode);
-                                    bottomGate.MapNode.Connections.Add(topGate.MapNode);
+                        int bottomComponent =
+                            curChunkComponent[
+                                bottomLocalRow,
+                                bottomLocalCol
+                            ];
 
-                                    isAlreadyConnectedSet.Add((bottomComponent, topComponent));
-                                }
+                        // local coords in down chunk
+                        int topLocalRow =
+                            topNode.Pos.Row - down.Corner1.Row;
 
-                                if (!topGate.GateNode.Connections.Contains(bottomGate.GateNode) && !isAlreadyConnected) {
-                                    topGate.GateNode.Connections.Add(bottomGate.GateNode);
-                                    topGate.MapNode.Connections.Add(bottomGate.MapNode);
-                                    isAlreadyConnectedSet.Add((bottomComponent, topComponent));
+                        int topLocalCol =
+                            topNode.Pos.Col - down.Corner1.Col;
 
-                                }
+                        int topComponent =
+                            downChunkConnectedComponent[
+                                topLocalRow,
+                                topLocalCol
+                            ];
 
-                                if (isUsingOneGatePerEdge)
-                                    break;
-                            }
+                        var componentPair =
+                            (bottomComponent, topComponent);
+
+                        if (connectedComponentPairs.Contains(componentPair))
+                            continue;
+
+                        connectedComponentPairs.Add(componentPair);
+
+                        Gate bottomGate =
+                            GetOrCreateGate(chunk, bottomNode);
+
+                        Gate topGate =
+                            GetOrCreateGate(down, topNode);
+
+                        if (!bottomGate.GateNode.Connections.Contains(topGate.GateNode)) {
+
+                            bottomGate.GateNode.Connections.Add(
+                                topGate.GateNode
+                            );
+
+                            bottomGate.MapNode.Connections.Add(
+                                topGate.MapNode
+                            );
                         }
+
+                        if (!topGate.GateNode.Connections.Contains(bottomGate.GateNode)) {
+
+                            topGate.GateNode.Connections.Add(
+                                bottomGate.GateNode
+                            );
+
+                            topGate.MapNode.Connections.Add(
+                                bottomGate.MapNode
+                            );
+                        }
+
                     }
+                }
 
-                    // connect chunk to the right
-                    if (c + 1 < chunkCols) {
-                        Chunk right = ChunksV2[r, c + 1];
+                // Connect chunk to the right
+                if (c + 1 < chunkCols) {
 
-                        int rightRowCount = right.Nodes.GetLength(0);
-                        int limit = Math.Min(rowCount, rightRowCount);
+                    Chunk right = ChunksV2[r, c + 1];
 
-                        int[,] rightChunkConnectedComponent =
-                            GenerateChunkConnectedComponent(right);
+                    int rightRowCount =
+                        right.Nodes.GetLength(0);
 
-                        HashSet<(int, int)> isAlreadyConnectedSet = new();
+                    int limit =
+                        Math.Min(rowCount, rightRowCount);
 
-                        for (int row = 0; row < limit; row++) {
+                    int[,] rightChunkConnectedComponent =
+                        GenerateChunkConnectedComponent(right);
 
-                            var rightEdge = chunk.Nodes[row, colCount - 1];
-                            var leftEdge = right.Nodes[row, 0];
+                    HashSet<(int, int)> connectedComponentPairs = new();
 
-                            if (rightEdge != null && leftEdge != null) {
+                    for (int row = 0; row < limit; row++) {
 
-                                Gate rightGate = GetOrCreateGate(chunk, rightEdge);
-                                Gate leftGate = GetOrCreateGate(right, leftEdge);
+                        Node? rightNode =
+                            chunk.Nodes[row, colCount - 1];
 
-                                Vector2 rightCoord = rightGate.MapNode.Pos;
+                        Node? leftNode =
+                            right.Nodes[row, 0];
 
-                                int rightLocalRow =
-                                    rightCoord.Row - chunk.Corner1.Row;
+                        if (rightNode == null || leftNode == null)
+                            continue;
 
-                                int rightLocalCol =
-                                    rightCoord.Col - chunk.Corner1.Col;
+                        // local coords in current chunk
+                        int rightLocalRow =
+                            rightNode.Pos.Row - chunk.Corner1.Row;
 
-                                int rightComponent =
-                                    curChunkComponent[rightLocalRow, rightLocalCol];
+                        int rightLocalCol =
+                            rightNode.Pos.Col - chunk.Corner1.Col;
 
-                                Vector2 leftCoord = leftGate.MapNode.Pos;
+                        int rightComponent =
+                            curChunkComponent[
+                                rightLocalRow,
+                                rightLocalCol
+                            ];
 
-                                int leftLocalRow =
-                                    leftCoord.Row - right.Corner1.Row;
+                        // local coords in right chunk
+                        int leftLocalRow =
+                            leftNode.Pos.Row - right.Corner1.Row;
 
-                                int leftLocalCol =
-                                    leftCoord.Col - right.Corner1.Col;
+                        int leftLocalCol =
+                            leftNode.Pos.Col - right.Corner1.Col;
 
-                                int leftComponent =
-                                    rightChunkConnectedComponent[leftLocalRow, leftLocalCol];
+                        int leftComponent =
+                            rightChunkConnectedComponent[
+                                leftLocalRow,
+                                leftLocalCol
+                            ];
 
-                                bool isAlreadyConnected =
-                                    isAlreadyConnectedSet.Contains(
-                                        (rightComponent, leftComponent)
-                                    );
+                        var componentPair =
+                            (rightComponent, leftComponent);
 
-                                if (!rightGate.GateNode.Connections.Contains(leftGate.GateNode)
-                                    && !isAlreadyConnected) {
+                        if (connectedComponentPairs.Contains(componentPair))
+                            continue;
 
-                                    rightGate.GateNode.Connections.Add(leftGate.GateNode);
-                                    rightGate.MapNode.Connections.Add(leftGate.MapNode);
+                        connectedComponentPairs.Add(componentPair);
 
-                                    isAlreadyConnectedSet.Add(
-                                        (rightComponent, leftComponent)
-                                    );
-                                }
+                        Gate rightGate =
+                            GetOrCreateGate(chunk, rightNode);
 
-                                if (!leftGate.GateNode.Connections.Contains(rightGate.GateNode)
-                                    && !isAlreadyConnected) {
+                        Gate leftGate =
+                            GetOrCreateGate(right, leftNode);
 
-                                    leftGate.GateNode.Connections.Add(rightGate.GateNode);
-                                    leftGate.MapNode.Connections.Add(rightGate.MapNode);
+                        if (!rightGate.GateNode.Connections.Contains(leftGate.GateNode)) {
 
-                                    isAlreadyConnectedSet.Add(
-                                        (rightComponent, leftComponent)
-                                    );
-                                }
+                            rightGate.GateNode.Connections.Add(
+                                leftGate.GateNode
+                            );
 
-                                if (isUsingOneGatePerEdge)
-                                    break;
-                            }
+                            rightGate.MapNode.Connections.Add(
+                                leftGate.MapNode
+                            );
                         }
+
+                        if (!leftGate.GateNode.Connections.Contains(rightGate.GateNode)) {
+
+                            leftGate.GateNode.Connections.Add(
+                                rightGate.GateNode
+                            );
+
+                            leftGate.MapNode.Connections.Add(
+                                rightGate.MapNode
+                            );
+                        }
+
+                        if (isUsingOneGatePerEdge)
+                            break;
                     }
                 }
             }
-            return this;
         }
+
+        return this;
+    }
 
         private Gate GetOrCreateGate(Chunk chunk, Node node) {
             var existing = chunk.Gates.FirstOrDefault(g => g.MapNode.Pos == node.Pos);
