@@ -1,9 +1,7 @@
 ﻿using System.Collections.Generic;
 
-namespace HPF.model
-{
-    public class FinalPath
-    {
+namespace HPF.model {
+    public class FinalPath {
         public List<Vector2> path { get; } = new();
         public List<Node> nodes { get; } = new();
         public List<AnimationStep> animationSteps { get; } = new();

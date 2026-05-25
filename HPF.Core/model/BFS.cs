@@ -39,8 +39,7 @@ namespace HPF.model {
                 foreach (var next in current.Connections) {
                     if (visited.Contains(next))
                         continue;
-                    if (isValidNode == null || isValidNode(next))
-                        {
+                    if (isValidNode == null || isValidNode(next)) {
                         //var a = 1;
                         //if (isValidNode != null){
                         //    var b = isValidNode(next);

@@ -2,13 +2,11 @@
 using System.Collections.Generic;
 namespace HPF.model;
 
-public class Manager
-{
+public class Manager {
     IAlgo selectedAlgo;
     PMap map;
 
-    public Manager(IAlgo algo, PMap map)
-    {
+    public Manager(IAlgo algo, PMap map) {
         this.selectedAlgo = algo;
         this.map = map;
     }
@@ -18,10 +16,9 @@ public class Manager
         var startNode = nodes[map.start];
         var goalNode = nodes[map.goal];
 
-        
+
         return selectedAlgo.FindGoal(startNode, goalNode);
     }
 
     //    => selectedAlgo.FindGoal(map.cells, map.start, map.goal);
 }
-

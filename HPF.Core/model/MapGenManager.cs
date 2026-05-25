@@ -1,8 +1,7 @@
 ﻿using System.Data;
 
 namespace HPF.model;
-public class GeneratedMap
-{
+public class GeneratedMap {
     public int Rows { get; init; }
     public int Cols { get; init; }
     public string MapString { get; init; } = "";
@@ -14,8 +13,8 @@ public class MapGenBuilder {
     public MapGenBuilder SetMapSize(int newMaxRow, int maxHeight) {
         if (newMaxRow % 2 == 0) newMaxRow++;
         if (maxHeight % 2 == 0) maxHeight++;
-        maxRow = (newMaxRow + 1 ) /2;
-        maxCol = (maxHeight + 1) /2;
+        maxRow = (newMaxRow + 1) / 2;
+        maxCol = (maxHeight + 1) / 2;
         return this;
     }
     public MapGenBuilder WithisStartRestrictedToEdge(bool isStartRestrictedToEdge = true) {
@@ -30,8 +29,7 @@ public class MapGenBuilder {
             .Generate(maxRow, maxCol, _isStartRestrictedToEdge)
             .ToFlatString();
 
-        return new GeneratedMap
-        {
+        return new GeneratedMap {
             Rows = maxRow * 2 - 1,
             Cols = maxCol * 2 - 1,
             MapString = map
@@ -48,10 +46,8 @@ public class MapGenBuilder {
     }
 
     public GeneratedMap BuildHardcodedMap(int cnt = 0) {
-        return cnt switch
-        {
-            0 => new GeneratedMap
-            {
+        return cnt switch {
+            0 => new GeneratedMap {
                 Rows = 16,
                 Cols = 32,
                 MapString =
@@ -73,8 +69,7 @@ public class MapGenBuilder {
                     "...#...........................G"
             },
 
-            1 => new GeneratedMap
-            {
+            1 => new GeneratedMap {
                 Rows = 8,
                 Cols = 16,
                 MapString =
@@ -88,8 +83,7 @@ public class MapGenBuilder {
                     "...#............"
             },
 
-            2 => new GeneratedMap
-            {
+            2 => new GeneratedMap {
                 Rows = 8,
                 Cols = 16,
                 MapString =
@@ -103,8 +97,7 @@ public class MapGenBuilder {
                     ".......#........"
             },
 
-            3 => new GeneratedMap
-            {
+            3 => new GeneratedMap {
                 Rows = 8,
                 Cols = 16,
                 MapString =
@@ -118,8 +111,7 @@ public class MapGenBuilder {
                     ".......#........"
             },
 
-            4 => new GeneratedMap
-            {
+            4 => new GeneratedMap {
                 Rows = 8,
                 Cols = 16,
                 MapString =
@@ -140,6 +132,3 @@ public class MapGenBuilder {
         };
     }
 }
-
-    
-

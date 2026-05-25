@@ -7,3 +7,7 @@
 - [ ] Consider supporting live updating of the map
 - [x] Make a legit labritnth generator
 	- [ ] Add option to restrict the goal and start in opisite edges of the map
+
+- [ ] Make the _show_ buttons toggle for all maps so you do not have to regenerate
+- [ ] Fix the gate placement so there are 1 gate per connected component
+- [ ] Display connected components, both for each chunk and globally

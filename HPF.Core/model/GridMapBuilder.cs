@@ -32,7 +32,7 @@
             grid.InitComponents();
             grid.SetIsUsingOneGatePerEdge(_oneGatePerEdge)
                 .InitChunks()
-                .InitGatesV2()
+                .InitGates()
                 .InitConnections()
                 .ConnectStartGate()
                 .ConnectGoalGate();

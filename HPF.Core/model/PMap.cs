@@ -106,7 +106,7 @@ namespace HPF.model {
                     }
                 }
             }
-            
+
             // Second pass: update all cells to their root component
             for (int row = 0; row < dim0; row++) {
                 for (int col = 0; col < dim1; col++) {
@@ -115,13 +115,13 @@ namespace HPF.model {
                     }
                 }
             }
-            
-                return domain;
+
+            return domain;
         }
-        
 
 
-        protected bool ConnectedNodes(Node n1, Node n2) 
+
+        protected bool ConnectedNodes(Node n1, Node n2)
             => components[n1.Pos.Row, n1.Pos.Col] == components[n2.Pos.Row, n2.Pos.Col];
         protected bool Connected((int row, int col) n1, (int row, int col) n2)
             => components[n1.row, n1.col] == components[n2.row, n2.col];

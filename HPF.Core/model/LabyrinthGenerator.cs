@@ -35,7 +35,7 @@ public class Labyrinth {
 
         ((int startRow, int startCol), (int goalRow, int goalCol)) =
             isStartRestrictedToEdge ? RandomAtEdge() : RandomStartAndGoal();
-        
+
         Start = Cells[startRow, startCol];
         Goal = Cells[goalRow, goalCol];
 
@@ -44,12 +44,12 @@ public class Labyrinth {
     }
 
     private ((int startRow, int startCol), (int goalRow, int goalCol)) RandomAtEdge() {
-        
+
         int r1 = _random.Next(1);
         int r2 = _random.Next(1);
 
-        int startRow = (N-1) * ((r1 == 0) ? 1 : 0);
-        int startCol = (M-1) * ((r2 == 0) ? 1 : 0);
+        int startRow = (N - 1) * ((r1 == 0) ? 1 : 0);
+        int startCol = (M - 1) * ((r2 == 0) ? 1 : 0);
 
         int goalRow = (N - 1) * ((r1 == 1) ? 1 : 0);
         int goalCol = (M - 1) * ((r2 == 1) ? 1 : 0);
@@ -172,19 +172,19 @@ public class LabyrinthGenerator {
         visited.Add(start);
 
         while (stack.Count > 0) {
-            var current = stack.Peek(); 
+            var current = stack.Peek();
 
             var unvisitedNeighbor = GetRandomUnvisitedNeighbor(current, labyrinth, visited);
 
             if (unvisitedNeighbor != null) {
-                
+
                 current.Connections.Add(unvisitedNeighbor);
                 unvisitedNeighbor.Connections.Add(current);
 
                 visited.Add(unvisitedNeighbor);
                 stack.Push(unvisitedNeighbor);
             } else {
-                
+
                 stack.Pop();
             }
         }

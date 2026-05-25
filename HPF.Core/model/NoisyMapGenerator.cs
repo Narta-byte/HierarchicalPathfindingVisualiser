@@ -1,6 +1,6 @@
-﻿using System;
+﻿using HPF.model;
+using System;
 using System.Text;
-using HPF.model;
 public static class NoisyMapGenerator {
     public static string Generate(int n, int m, double wallChance = 0.25, int? seed = null) {
         var rng = seed.HasValue ? new Random(seed.Value) : new Random();

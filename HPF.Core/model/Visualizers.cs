@@ -1,12 +1,10 @@
-﻿using System;
+﻿using HPF.model;
+using System;
 using System.Collections.Generic;
 using System.Threading;
-using HPF.model;
 
-public static class Visualizers
-{
-    public static void AnimateAsAscii(PMap map, FinalPath finalPath, int delayMs = 120)
-    {
+public static class Visualizers {
+    public static void AnimateAsAscii(PMap map, FinalPath finalPath, int delayMs = 120) {
         // Accumulate what we've processed so far
         var visited = new HashSet<Vector2>();
         var path = new HashSet<Vector2>();
@@ -19,14 +17,13 @@ public static class Visualizers
         Console.SetCursorPosition(0, 0);
         PrintFrame(map, visited, path, path.Count, -1, 0);
 
-        for (int i = 0; i < finalPath.animationSteps.Count; i++)
-        {
+        for (int i = 0; i < finalPath.animationSteps.Count; i++) {
             var step = finalPath.animationSteps[i];
 
             if (step.isPath)
                 path.Add(step.pos);
             else if (step.isVisited)
-                visited.Add(step.pos);          
+                visited.Add(step.pos);
 
             Console.SetCursorPosition(0, 0);
             PrintFrame(map, visited, path, path.Count, i, finalPath.animationSteps.Count);
@@ -41,12 +38,9 @@ public static class Visualizers
     }
 
     private static void PrintFrame(PMap map, HashSet<Vector2> visited, HashSet<Vector2> path,
-                                    int pathLen, int stepIndex, int totalSteps)
-    {
-        for (int r = 0; r < map.N; r++)
-        {
-            for (int c = 0; c < map.M; c++)
-            {
+                                    int pathLen, int stepIndex, int totalSteps) {
+        for (int r = 0; r < map.N; r++) {
+            for (int c = 0; c < map.M; c++) {
                 var coord = new Vector2(r, c);
 
                 if (coord == map.Start()) { Console.Write('S'); continue; }
