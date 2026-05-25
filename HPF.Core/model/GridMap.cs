@@ -211,7 +211,7 @@ namespace HPF.model {
                 for (int j = 0; j < ChunksV2.GetLength(1); j++) {
                     foreach (var gate in ChunksV2[i, j].Gates)
                         if (seen.Add(gate))
-                            yield return gate.MapNode;
+                            yield return gate.GateNode;
                 }
             }
         }
