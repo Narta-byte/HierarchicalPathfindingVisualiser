@@ -1,4 +1,6 @@
 @using HPF.model
+@using HPF.Web.Models
+
 @using Microsoft.AspNetCore.Components.Web
 @inject IJSRuntime JS
 
@@ -12,20 +14,28 @@
     <canvas class="grid-canvas" @ref="canvas"></canvas>
 
 </div>
+<div class="timeline-panel">
 
+    <button @onclick="TogglePlayback">
+        @(isPlaying ? "Pause" : "Play")
+    </button>
+
+    <input type="range"
+           min="0"
+           max="@MaxFrame"
+           value="@currentFrame"
+           @oninput="OnSliderChanged" />
+
+    <span>
+        @currentFrame / @MaxFrame
+    </span>
+
+</div>
 @code {
-    public class GridMapDto {
-        public int GridSize { get; set; }
-        public List<GateDto> AllGates { get; set; } = new();
-    }
-
-    public class GateDto {
-        public Vector2 Pos { get; set; }
-        public List<Vector2> Connections { get; set; } = new();
-    }
+    
     [Parameter] public GeneratedMap? Map { get; set; }
     [Parameter] public GridMap? GridMap { get; set; }
-    [Parameter] public FinalPath? Path { get; set; }
+    [Parameter] public FinalPathDto? Path { get; set; }
     [Parameter] public AppConfig? Config { get; set; }
 
     private ElementReference canvas;
@@ -40,6 +50,17 @@
 
     private bool _initialized;
 
+
+    private int currentFrame = 0;
+
+    private bool isPlaying = false;
+
+    private PeriodicTimer? timer;
+    private int currentStep = 0;
+
+
+    private CancellationTokenSource? playCts;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -53,7 +74,7 @@
     {
         if (!_initialized)
             return;
-
+        currentFrame = 0;
         await Draw();
     }
 
@@ -71,7 +92,8 @@
             Config,
             scale,
             offsetX,
-            offsetY
+            offsetY,
+            currentFrame
         );
     }
 
@@ -109,18 +131,99 @@
 
         await Draw();
     }
-    private GridMapDto ToDto(GridMap grid)
-{
-    return new GridMapDto
+    private GridMapDto ToDto(GridMap grid) {
+        return new GridMapDto
+        {
+            GridSize = grid.GridSize,
+            AllGates = grid.GetAllGates()
+                .Select(g => new GateDto
+                {
+                    Pos = g.Pos,
+                    Connections = g.Connections.Select(c => c.Pos).ToList()
+                })
+                .ToList()
+        };
+    }
+    private int MaxFrame =>
+    Path?.AnimationSteps?.Count > 0
+        ? Path.AnimationSteps.Count - 1
+        : 0;
+    private async Task TogglePlayback()
     {
-        GridSize = grid.GridSize,
-        AllGates = grid.GetAllGates()
-            .Select(g => new GateDto
+        isPlaying = !isPlaying;
+
+        if (!isPlaying)
+            return;
+
+        timer = new PeriodicTimer(TimeSpan.FromMilliseconds(16));
+
+        while (isPlaying && await timer.WaitForNextTickAsync())
+        {
+            if (currentFrame >= MaxFrame)
             {
-                Pos = g.Pos,
-                Connections = g.Connections.Select(c => c.Pos).ToList()
-            })
-            .ToList()
-    };
-}
+                isPlaying = false;
+                break;
+            }
+
+            currentFrame++;
+
+            await Draw();
+
+            StateHasChanged();
+        }
+    }
+
+
+
+    private async Task OnSliderChanged(ChangeEventArgs e)
+    {
+        if (Path == null)
+            return;
+
+        if (int.TryParse(e.Value?.ToString(), out int value))
+        {
+            currentStep = value;
+
+            await Draw();
+        }
+    }
+
+    private async Task Play()
+    {
+        if (Path == null || isPlaying)
+            return;
+
+        isPlaying = true;
+
+        playCts = new CancellationTokenSource();
+
+        try
+        {
+            while (currentStep < Path.AnimationSteps.Count - 1)
+            {
+                if (playCts.IsCancellationRequested)
+                    break;
+
+                currentStep++;
+
+                await Draw();
+
+                StateHasChanged();
+
+                await Task.Delay(25);
+            }
+        }
+        finally
+        {
+            isPlaying = false;
+        }
+    }
+
+    private void Pause()
+    {
+        isPlaying = false;
+
+        playCts?.Cancel();
+    }
+    
 }

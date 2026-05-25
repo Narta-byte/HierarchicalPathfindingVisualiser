@@ -8,14 +8,10 @@ window.gridRenderer = {
         config,
         scale,
         offsetX,
-        offsetY
+        offsetY,
+        currentFrame
     ) {
-        // console.log("Drawing grid...");
-        // console.log("Canvas:", canvas);
-        // console.log("Map:", map);
-        // console.log("GridMap:", gridMap);
-        // console.log("Path:", path);
-        // console.log("Config:", config);
+
         if (!canvas || !map)
             return;
 
@@ -45,7 +41,7 @@ window.gridRenderer = {
             drawGates(ctx, gridMap, cellSize);
 
         if (config?.showPath)
-            drawPath(ctx, path, cellSize);
+            drawPath(ctx, path, cellSize, currentFrame);
 
         ctx.restore();
     }
@@ -142,20 +138,32 @@ function drawGates(ctx, gridMap, cellSize) {
     }
 }
 
-function drawPath(ctx, path, cellSize) {
+function drawPath(ctx, path, cellSize, currentFrame) {
 
-    if (!path?.path)
+    if (!path?.animationSteps)
         return;
 
-    ctx.fillStyle = "#00ffff";
+    for (let i = 0; i <= currentFrame; i++) {
 
-    for (const p of path.path) {
+        const step = path.animationSteps[i];
+
+        if (!step || !step.pos)
+            continue;
+
+        const x = step.pos.col * cellSize;
+        const y = step.pos.row * cellSize;
+
+        if (step.isVisited)
+            ctx.fillStyle = "#4fc3f7";
+
+        if (step.isPath)
+            ctx.fillStyle = "#ffff00";
 
         ctx.fillRect(
-            p.col * cellSize + 4,
-            p.row * cellSize + 4,
-            cellSize - 8,
-            cellSize - 8
+            x + 3,
+            y + 3,
+            cellSize - 6,
+            cellSize - 6
         );
     }
 }
