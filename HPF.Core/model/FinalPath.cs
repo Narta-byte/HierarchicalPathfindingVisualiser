@@ -5,7 +5,7 @@ namespace HPF.model {
         public List<Vector2> path { get; } = new();
         public List<Node> nodes { get; } = new();
         public List<AnimationStep> animationSteps { get; } = new();
-            public bool isReachable = false;
+        public bool isReachable = false;
         public void AddPath(Vector2 c) => path.Add(c);
         public void AddNode(Node node) => nodes.Add(node);
 

@@ -1,6 +1,5 @@
 @using HPF.model
 @using HPF.Web.Models
-
 @using Microsoft.AspNetCore.Components.Web
 @inject IJSRuntime JS
 
@@ -9,11 +8,13 @@
      @onmousemove="Pan"
      @onmouseup="EndPan"
      @onmouseleave="EndPan"
-     @onwheel="Zoom">
+     @onwheel="Zoom"
+     @onwheel:preventDefault="true">
 
     <canvas class="grid-canvas" @ref="canvas"></canvas>
 
 </div>
+
 <div class="timeline-panel">
 
     <button @onclick="TogglePlayback">
@@ -31,8 +32,9 @@
     </span>
 
 </div>
+
 @code {
-    
+
     [Parameter] public GeneratedMap? Map { get; set; }
     [Parameter] public GridMap? GridMap { get; set; }
     [Parameter] public FinalPathDto? Path { get; set; }
@@ -49,24 +51,25 @@
     private double lastY;
 
     private bool _initialized;
-
+    private bool _dataCached;
 
     private int currentFrame = 0;
-
     private bool isPlaying = false;
 
-    private PeriodicTimer? timer;
+    // Unique ID for this component instance so the JS cache key is stable
+    private readonly string _cacheId = Guid.NewGuid().ToString("N");
 
-
-
-    private CancellationTokenSource? playCts;
+    // ---------------------------------------------------------------
+    // Lifecycle
+    // ---------------------------------------------------------------
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             _initialized = true;
-            await Draw();
+            await PushStaticData();
+            await DrawView();
         }
     }
 
@@ -75,28 +78,62 @@
         currentFrame = 0;
         isPlaying = false;
         playCts?.Cancel();
+        _dataCached = false;
 
-        await Draw();
+        if (_initialized)
+        {
+            await PushStaticData();
+            await DrawView();
+        }
     }
 
-    private async Task Draw()
+    // ---------------------------------------------------------------
+    // JS interop helpers
+    // ---------------------------------------------------------------
+
+    /// <summary>
+    /// Sends heavy, rarely-changing data to the JS cache once.
+    /// After this call, Draw() only needs to pass view-state scalars.
+    /// </summary>
+    private async Task PushStaticData()
     {
-        if (Map is null)
+        if (Map is null || _dataCached)
+            return;
+
+        await JS.InvokeVoidAsync(
+            "gridRenderer.setData",
+            _cacheId,
+            Map,
+            GridMap is null ? null : ToDto(GridMap),
+            Path,
+            Config
+        );
+
+        _dataCached = true;
+    }
+
+    /// <summary>
+    /// Hot draw call — tiny payload, no heavy objects.
+    /// </summary>
+    private async Task DrawView()
+    {
+        if (!_dataCached)
             return;
 
         await JS.InvokeVoidAsync(
             "gridRenderer.draw",
             canvas,
-            Map,
-            GridMap is null ? null : ToDto(GridMap),
-            Path,
-            Config,
+            _cacheId,
             scale,
             offsetX,
             offsetY,
             currentFrame
         );
     }
+
+    // ---------------------------------------------------------------
+    // Pan / Zoom
+    // ---------------------------------------------------------------
 
     private void StartPan(MouseEventArgs e)
     {
@@ -116,89 +153,65 @@
         lastX = e.ClientX;
         lastY = e.ClientY;
 
-        await Draw();
+        await DrawView();
     }
 
-    private void EndPan(MouseEventArgs e)
-    {
-        dragging = false;
-    }
+    private void EndPan(MouseEventArgs e) => dragging = false;
 
     private async Task Zoom(WheelEventArgs e)
     {
         double zoomSpeed = 0.001;
+        double newScale = Math.Clamp(scale - e.DeltaY * zoomSpeed, 0.1, 8);
 
-        scale = Math.Clamp(scale - e.DeltaY * zoomSpeed, 0.1, 8);
+        double ratio = newScale / scale;
+        offsetX = e.OffsetX - (e.OffsetX - offsetX) * ratio;
+        offsetY = e.OffsetY - (e.OffsetY - offsetY) * ratio;
 
-        await Draw();
+        scale = newScale;
+        await DrawView();
     }
-    private GridMapDto ToDto(GridMap grid) {
-        return new GridMapDto
-        {
-            GridSize = grid.GridSize,
-            AllGates = grid.GetAllGates()
-                .Select(g => new GateDto
-                {
-                    Pos = g.Pos,
-                    Connections = g.Connections.Select(c => c.Pos).ToList()
-                })
-                .ToList()
-        };
-    }
+
+    // ---------------------------------------------------------------
+    // Playback
+    // ---------------------------------------------------------------
+
+    private CancellationTokenSource? playCts;
+
     private int MaxFrame =>
-    Path?.AnimationSteps?.Count > 0
-        ? Path.AnimationSteps.Count - 1
-        : 0;
+        Path?.AnimationSteps?.Count > 0
+            ? Path.AnimationSteps.Count - 1
+            : 0;
+
     private async Task TogglePlayback()
     {
-        if (isPlaying)
-        {
-            Pause();
-            return;
-        }
-
+        if (isPlaying) { Pause(); return; }
         await Play();
-    }
-
-
-
-    private async Task OnSliderChanged(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out int value))
-        {
-            currentFrame = value;
-
-            await Draw();
-
-            StateHasChanged();
-        }
     }
 
     private async Task Play()
     {
-        if (Path == null || isPlaying)
+        if (Path is null || isPlaying)
             return;
 
         isPlaying = true;
-
+        playCts?.Cancel();
         playCts = new CancellationTokenSource();
+        var token = playCts.Token;
 
         try
         {
             while (currentFrame < MaxFrame)
             {
-                if (playCts.IsCancellationRequested)
+                if (token.IsCancellationRequested)
                     break;
 
                 currentFrame++;
-
-                await Draw();
-
+                await DrawView();
                 StateHasChanged();
-
-                await Task.Delay(25);
+                await Task.Delay(25, token);
             }
         }
+        catch (TaskCanceledException) { /* expected on Pause */ }
         finally
         {
             isPlaying = false;
@@ -207,9 +220,55 @@
 
     private void Pause()
     {
-        isPlaying = false;
-
         playCts?.Cancel();
+        isPlaying = false;
     }
-    
+
+    /// <summary>
+    /// Called by JS when the animation reaches the last frame.
+    /// </summary>
+    [JSInvokable]
+    public void OnPlaybackEnded(int finalFrame)
+    {
+        currentFrame = finalFrame;
+        isPlaying = false;
+        playCts?.Cancel();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Called by JS on each frame tick so the slider stays in sync
+    /// without Blazor needing to drive the loop.
+    /// </summary>
+    [JSInvokable]
+    public void OnFrameTick(int frame)
+    {
+        currentFrame = frame;
+        StateHasChanged();
+    }
+
+    private async Task OnSliderChanged(ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out int value))
+            return;
+
+        currentFrame = value;
+        await DrawView();
+    }
+
+    // ---------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------
+
+    private static GridMapDto ToDto(GridMap grid) => new()
+    {
+        GridSize = grid.GridSize,
+        AllGates = grid.GetAllGates()
+            .Select(g => new GateDto
+            {
+                Pos = g.Pos,
+                Connections = g.Connections.Select(c => c.Pos).ToList()
+            })
+            .ToList()
+    };
 }
