@@ -1,52 +1,18 @@
-/**
- * gridRenderer.js — optimised canvas renderer for HPF grid maps.
- *
- * Key optimisations vs. the original:
- *   1. Static data (map, gates, connections) is cached in JS and only sent
- *      once from Blazor, so the hot draw path only transfers 5 small scalars.
- *   2. The map tile layer is pre-rendered to an offscreen canvas and blit'd
- *      with drawImage() — no per-cell fillRect on every pan/zoom.
- *   3. All draw calls are guarded by requestAnimationFrame so we never draw
- *      more than once per display refresh, even if Blazor fires many events.
- *   4. Playback is driven entirely by a JS setInterval, removing the Blazor
- *      Task.Delay loop and all per-frame .NET→JS interop overhead during play.
- */
-
 window.gridRenderer = (() => {
-
-    // ─── per-instance cache keyed by cacheId ────────────────────────────────
     const _cache = {};
-
-    // ─── per-instance rAF state ──────────────────────────────────────────────
     const _rafState = {};
 
-    // ─── per-instance playback state ────────────────────────────────────────
     const _playback = {};
+    const CELL = 64;
 
-    const CELL = 16;
-
-    // ────────────────────────────────────────────────────────────────────────
-    // Public API
-    // ────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Called once (or whenever Map/Path change) to push heavy data into JS.
-     * Builds the offscreen tile canvas here so draw() never rebuilds it.
-     */
     function setData(cacheId, map, gridMap, path, config) {
         const offscreen = buildOffscreenMap(map);
         _cache[cacheId] = { map, gridMap, path, config, offscreen };
     }
 
-    /**
-     * Hot draw call — only view-state scalars arrive from Blazor.
-     * Schedules a real draw via rAF, discarding redundant calls in the same
-     * frame.
-     */
     function draw(canvas, cacheId, scale, offsetX, offsetY, currentFrame) {
         const state = _rafState[cacheId] ?? (_rafState[cacheId] = {});
 
-        // Always update the latest requested view state
         state.pending = { canvas, cacheId, scale, offsetX, offsetY, currentFrame };
 
         if (!state.rafId) {
@@ -58,13 +24,8 @@ window.gridRenderer = (() => {
         }
     }
 
-    /**
-     * Start JS-driven playback.
-     * @param dotNetRef  Blazor DotNetObjectReference — we call OnFrameTick /
-     *                   OnPlaybackEnded on it so the slider stays in sync.
-     */
     function startPlayback(canvas, cacheId, scale, offsetX, offsetY, startFrame, msPerFrame, dotNetRef) {
-        stopPlayback(cacheId); // cancel any existing interval
+        stopPlayback(cacheId); 
 
         const cached = _cache[cacheId];
         if (!cached) return;
@@ -75,8 +36,6 @@ window.gridRenderer = (() => {
         _playback[cacheId] = setInterval(() => {
             frame++;
 
-            // Sync slider every 3 frames to reduce .NET calls without
-            // making the slider look janky.
             if (frame % 3 === 0) {
                 dotNetRef.invokeMethodAsync('OnFrameTick', frame);
             }
@@ -97,10 +56,6 @@ window.gridRenderer = (() => {
         }
     }
 
-    // ────────────────────────────────────────────────────────────────────────
-    // Internal draw
-    // ────────────────────────────────────────────────────────────────────────
-
     function _drawNow(canvas, cacheId, scale, offsetX, offsetY, currentFrame) {
         const cached = _cache[cacheId];
         if (!canvas || !cached) return;
@@ -108,9 +63,6 @@ window.gridRenderer = (() => {
         const { map, gridMap, path, config, offscreen } = cached;
         const ctx = canvas.getContext('2d');
 
-        // Size the canvas to its wrapper, never to the window.
-        // The wrapper must have a fixed size via CSS (position:absolute fill, or
-        // explicit height) — that is what prevents the page scrollbar.
         const wrapper = canvas.parentElement;
         const W = wrapper ? wrapper.clientWidth  : 800;
         const H = wrapper ? wrapper.clientHeight : 600;
@@ -124,31 +76,22 @@ window.gridRenderer = (() => {
         ctx.translate(offsetX, offsetY);
         ctx.scale(scale, scale);
 
-        // ── layer 1: static map tiles (offscreen blit — very cheap) ──
         ctx.drawImage(offscreen, 0, 0);
 
-        // ── layer 2: chunk grid ──
         if (config?.showChunks)
             drawChunks(ctx, map, config.chunkSize, CELL);
 
-        // ── layer 3: gate connections ──
         if (config?.showConnections)
             drawConnections(ctx, gridMap, CELL);
 
-        // ── layer 4: gates ──
         if (config?.showGates)
             drawGates(ctx, gridMap, CELL);
 
-        // ── layer 5: path animation ──
         if (true)
             drawPath(ctx, path, CELL, currentFrame);
 
         ctx.restore();
     }
-
-    // ────────────────────────────────────────────────────────────────────────
-    // Offscreen tile canvas — built once in setData()
-    // ────────────────────────────────────────────────────────────────────────
 
     function buildOffscreenMap(map) {
         const oc  = document.createElement('canvas');
@@ -170,10 +113,6 @@ window.gridRenderer = (() => {
         }
         return oc;
     }
-
-    // ────────────────────────────────────────────────────────────────────────
-    // Layer draw functions (unchanged logic, moved inside module)
-    // ────────────────────────────────────────────────────────────────────────
 
     function drawChunks(ctx, map, chunkSize, cellSize) {
         ctx.strokeStyle = '#0088ff';
@@ -240,7 +179,6 @@ window.gridRenderer = (() => {
     function drawPath(ctx, path, cellSize, currentFrame) {
         if (!path?.animationSteps) return;
 
-        // Batch visited cells then path cells to minimise fillStyle switches
         const visited = [];
         const pathCells = [];
 
@@ -264,19 +202,11 @@ window.gridRenderer = (() => {
         }
     }
 
-    // ────────────────────────────────────────────────────────────────────────
-    // Utility
-    // ────────────────────────────────────────────────────────────────────────
-
     function getMaxFrame(path) {
         return path?.animationSteps?.length > 0
             ? path.animationSteps.length - 1
             : 0;
     }
-
-    // ────────────────────────────────────────────────────────────────────────
-    // Exports
-    // ────────────────────────────────────────────────────────────────────────
 
     return { setData, draw, startPlayback, stopPlayback };
 
