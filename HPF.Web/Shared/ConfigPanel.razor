@@ -31,6 +31,7 @@
             <select @bind="SelectedGenerator">
                 <option value="Labyrinth">Labyrinth</option>
                 <option value="Noise">Noise Map</option>
+                <option value="Cave">Cave Map</option>
             </select>
         </div>
 
@@ -50,7 +51,7 @@
         <div class="config-row">
             <label>Path Algorithm</label>
             <select @bind="SelectedAlgorithm">
-                <option>AStar</option>
+                <option>A*</option>
                 <option>BFS</option>
                 <option>DFS</option>
             </select>
@@ -59,7 +60,7 @@
         <div class="config-row">
             <label>Gate Algorithm</label>
             <select @bind="SelectedGateAlgorithm">
-                <option>AStar</option>
+                <option>A*</option>
                 <option>BFS</option>
                 <option>DFS</option>
             </select>
@@ -114,8 +115,8 @@
     bool ShowGates = false;
     bool ShowConnections = false;
 
-    string SelectedAlgorithm = "AStar";
-    string SelectedGateAlgorithm = "AStar";
+    string SelectedAlgorithm = "A*";
+    string SelectedGateAlgorithm = "A*";
 
     string SelectedGenerator = "Labyrinth";
     string SelectedNoiseMap = "Noise";

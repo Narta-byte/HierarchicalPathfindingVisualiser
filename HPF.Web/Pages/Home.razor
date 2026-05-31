@@ -38,9 +38,10 @@
             .SetMapSize(cfg.Rows, cfg.Cols)
             .WithisStartRestrictedToEdge(cfg.RestrictStartToEdge);
 
-        currentMap = cfg.Generator switch
-        {
+        currentMap = cfg.Generator switch {
             "Noise" => builder.GenerateNoiseMap(cfg.NoiseLevel),
+            "Labyrinth" => builder.BuildLabyrinth(),
+            "Cave" => builder.BuildCaveMap(),
             _ => builder.BuildLabyrinth()
         };
 

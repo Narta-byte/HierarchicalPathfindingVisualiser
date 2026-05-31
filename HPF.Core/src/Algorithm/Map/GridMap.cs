@@ -409,14 +409,14 @@ namespace HPF.model {
 
         public GridMap ConnectStartGate() {
             if (start == null) {
-                throw new Exception();
+                throw new Exception($"Start is null");
             }
             ConnectNodeToGates(start);
             return this;
         }
         public GridMap ConnectGoalGate() {
             if (goal == null) {
-                throw new Exception();
+                throw new Exception($"Goal is null");
             }
             ConnectNodeToGates(goal);
             return this;

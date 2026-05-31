@@ -14,7 +14,7 @@ public class Labyrinth {
 
     public Node[,] Cells { get; }
     private Random _random;
-
+    
     public Labyrinth(int n, int m, bool isStartRestrictedToEdge = false) {
         N = n;
         M = m;

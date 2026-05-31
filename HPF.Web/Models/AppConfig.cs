@@ -14,7 +14,7 @@ public class AppConfig
     public bool ShowGates { get; set; } = false;
     public bool ShowConnections { get; set; }
 
-    public string Algorithm { get; set; } = "AStar";
+    public string Algorithm { get; set; } = "A*";
 
     // ---- MISSING FIELDS (required by AppState) ----
 
@@ -22,10 +22,10 @@ public class AppConfig
 
     public string NoiseMap { get; set; } = "Noise";
 
-    public string GateAlgorithm { get; set; } = "AStar";
+    public string GateAlgorithm { get; set; } = "A*";
 
     // separate algorithms
-    public string PathAlgorithm { get; set; } = "AStar";
+    public string PathAlgorithm { get; set; } = "A*";
 
     public double NoiseLevel { get; set; } = 0.30;
 

@@ -44,7 +44,25 @@ public class MapGenBuilder {
             MapString = mapStr
         };
     }
-
+    public GeneratedMap BuildCaveMap() {
+        string mapStr = 
+            new CaveMap(maxRow, maxCol)
+                       .SetSeed(1)
+                       .AppllyCellularAutomaton()
+                       .AppllyCellularAutomaton()
+                       .AppllyCellularAutomaton()
+                       .AppllyCellularAutomaton()
+                       .AppllyCellularAutomaton()
+                       .AppllyCellularAutomaton()
+                       .AppllyCellularAutomaton()
+                       .SetStartAndGoal()
+                       .ToMapStr();
+        return new GeneratedMap {
+            Rows = maxRow,
+            Cols = maxCol,
+            MapString = mapStr
+        };
+    }
     public GeneratedMap BuildHardcodedMap(int cnt = 0) {
         return cnt switch {
             0 => new GeneratedMap {

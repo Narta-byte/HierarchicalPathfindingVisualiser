@@ -23,13 +23,12 @@ public class AppState
         {
             "Labyrinth" =>
                 builder.BuildLabyrinth(),
-
             "Noise" =>
                 builder.GenerateNoiseMap(cfg.NoiseLevel),
-
             "Hardcoded" =>
                 builder.BuildHardcodedMap(cfg.HardcodedMapId),
-
+            "Cave" =>
+                builder.BuildCaveMap(),
             _ =>
                 builder.BuildLabyrinth()
         };
