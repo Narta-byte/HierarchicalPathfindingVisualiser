@@ -1,22 +1,19 @@
-﻿using static HPF.model.PMap;
+﻿using System.Collections.Generic;
 
 namespace HPF.model {
     public class DFS : IAlgo {
-        //public FinalPath FindGoal(Celltype[,] map, Vector2 start, Vector2 goal) {
-        //    throw new NotImplementedException();
-        //}
         public FinalPath FindGoal(Node start, Node goal, Func<Node, bool>? isValidNode = null) {
             var result = new FinalPath();
 
-            var stack = new Stack<Node>();
+            var queue = new Stack<Node>();
             var visited = new HashSet<Node>();
             var parent = new Dictionary<Node, Node?>();
 
-            stack.Push(start);
+            queue.Push(start);
             visited.Add(start);
             parent[start] = null;
-            while (stack.Count > 0) {
-                var current = stack.Pop();
+            while (queue.Count > 0) {
+                var current = queue.Pop();
                 result.AddAnimationStep(current.Pos, isVisited: true, isPath: false);
 
                 if (current == goal) {
@@ -42,11 +39,11 @@ namespace HPF.model {
                 foreach (var next in current.Connections) {
                     if (visited.Contains(next))
                         continue;
-                    if (isValidNode == null || isValidNode(next))
-                        continue;
-                    visited.Add(next);
-                    parent[next] = current;
-                    stack.Push(next);
+                    if (isValidNode == null || isValidNode(next)) {
+                        visited.Add(next);
+                        parent[next] = current;
+                        queue.Push(next);
+                    }
                 }
             }
 
