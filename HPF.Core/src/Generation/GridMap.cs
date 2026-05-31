@@ -446,7 +446,7 @@ namespace HPF.model {
                 }
             }
         }
-        public FinalPath GetGridPath(IAlgo algo) {
+        public FinalPath GetGridPath(IAlgo algo1, IAlgo algo2) {
             if (start == null || goal == null) {
                 throw new Exception();
             }
@@ -464,7 +464,7 @@ namespace HPF.model {
                 throw new Exception("Start and goal is to reachable to each other");
 
 
-            FinalPath ChunkV2Path = algo.FindGoal(startGate.GateNode, goalGate.GateNode);
+            FinalPath ChunkV2Path = algo1.FindGoal(startGate.GateNode, goalGate.GateNode);
             var ChunkV2Set = new HashSet<Chunk>();
 
             foreach (Node node in ChunkV2Path.nodes) {
@@ -472,9 +472,8 @@ namespace HPF.model {
                 ChunkV2Set.Add(c);
 
             }
-            var a = 1;
 
-            return algo.FindGoal(startGate.MapNode, goalGate.MapNode, (Node n) => ChunkV2Set.Contains(GetChunkV2(n.Pos)));
+            return algo2.FindGoal(startGate.MapNode, goalGate.MapNode, (Node n) => ChunkV2Set.Contains(GetChunkV2(n.Pos)));
             //return ChunkV2Path; // temp
         }
 

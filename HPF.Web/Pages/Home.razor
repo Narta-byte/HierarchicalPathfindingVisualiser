@@ -59,11 +59,10 @@
         if (gridMap is null)
             return;
 
-        IAlgo algo = cfg.Algorithm == "BFS"
-            ? new BFS()
-            : new AStar();
+        IAlgo algoGate = ParseAlgorithm(cfg.GateAlgorithm);
+        IAlgo algoPath = ParseAlgorithm(cfg.Algorithm);
 
-        currentPath = gridMap.GetGridPath(algo);
+        currentPath = gridMap.GetGridPath(algoGate, algoPath);
 
         renderPath = new FinalPathDto
         {
@@ -77,6 +76,15 @@
                 .ToList()
         };
     }
+
+    private IAlgo ParseAlgorithm(string algorithm) =>
+        algorithm == "BFS"
+            ? new BFS()
+            : algorithm == "DFS"
+            ? new DFS()
+            : new AStar();
+    
+
     void UpdateVisuals(AppConfig cfg)
     {
         config.ShowChunks = cfg.ShowChunks;
