@@ -3,7 +3,7 @@ window.gridRenderer = (() => {
     const _rafState = {};
 
     const _playback = {};
-    const CELL = 64;
+    const CELL = 16;
 
     function setData(cacheId, map, gridMap, path, config) {
         const offscreen = buildOffscreenMap(map);
@@ -189,16 +189,18 @@ window.gridRenderer = (() => {
             else if (step.isVisited) visited.push(step.pos);
         }
 
+        const padding = cellSize * 0.1; 
+
         ctx.fillStyle = '#7f9928';
         for (const pos of visited) {
-            ctx.fillRect(pos.col * cellSize + 3, pos.row * cellSize + 3,
-                         cellSize - 6, cellSize - 6);
+            ctx.fillRect(pos.col * cellSize + padding, pos.row * cellSize + padding,
+                        cellSize - 2 * padding, cellSize - 2 * padding);
         }
 
         ctx.fillStyle = '#cd0d0d';
         for (const pos of pathCells) {
-            ctx.fillRect(pos.col * cellSize + 3, pos.row * cellSize + 3,
-                         cellSize - 6, cellSize - 6);
+            ctx.fillRect(pos.col * cellSize + padding, pos.row * cellSize + padding,
+                        cellSize - 2 * padding, cellSize - 2 * padding);
         }
     }
 
